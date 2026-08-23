@@ -1840,7 +1840,7 @@ class MainActivity : AppCompatActivity() {
         private const val PRIVACY_PREFERENCES = "privacy_acknowledgements"
         private const val KEY_LOCATION_DISCLOSURE_ACKNOWLEDGED = "location_disclosure_acknowledged"
         internal const val PRIVACY_POLICY_URL =
-            "https://github.com/gmode2020x-tim/jarvis-local-llm/blob/main/android/gmode-trip-recorder/PRIVACY_POLICY.md"
+            "https://github.com/gmode2020x-tim/gmode-trip-recorder/blob/main/PRIVACY_POLICY.md"
     }
 
     private val BACKGROUND: Int get() = palette.background

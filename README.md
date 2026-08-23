@@ -8,10 +8,10 @@ The v2 cockpit combines a scene-matched procedural 3D vehicle, live pitch and ro
 
 ## Download version 2.0.0
 
-- **Recommended phone package:** [GMODE-Trip-Recorder-v2.0.0-install.zip](https://github.com/gmode2020x-tim/jarvis-local-llm/releases/download/v2.0.0/GMODE-Trip-Recorder-v2.0.0-install.zip)
-- **APK only:** [GMODE-Trip-Recorder-v2.0.0-sideload.apk](https://github.com/gmode2020x-tim/jarvis-local-llm/releases/download/v2.0.0/GMODE-Trip-Recorder-v2.0.0-sideload.apk)
-- **Checksums:** [GMODE-Trip-Recorder-v2.0.0-SHA256SUMS.txt](https://github.com/gmode2020x-tim/jarvis-local-llm/releases/download/v2.0.0/GMODE-Trip-Recorder-v2.0.0-SHA256SUMS.txt)
-- **Release page:** [GMODE Trip Recorder v2.0.0](https://github.com/gmode2020x-tim/jarvis-local-llm/releases/tag/v2.0.0)
+- **Recommended phone package:** [GMODE-Trip-Recorder-v2.0.0-install.zip](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.0.0/GMODE-Trip-Recorder-v2.0.0-install.zip)
+- **APK only:** [GMODE-Trip-Recorder-v2.0.0-sideload.apk](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.0.0/GMODE-Trip-Recorder-v2.0.0-sideload.apk)
+- **Checksums:** [GMODE-Trip-Recorder-v2.0.0-SHA256SUMS.txt](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.0.0/GMODE-Trip-Recorder-v2.0.0-SHA256SUMS.txt)
+- **Release page:** [GMODE Trip Recorder v2.0.0](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/tag/v2.0.0)
 
 The ZIP contains the sideload APK, checksum file, this installation guide, and the screenshots used below. The Play `.aab` on the release page is for Google Play Console and cannot be installed directly on a phone.
 

@@ -44,5 +44,5 @@ Suggested screenshot captions:
 
 ## URLs
 
-- Privacy policy: `https://github.com/gmode2020x-tim/jarvis-local-llm/blob/main/android/gmode-trip-recorder/PRIVACY_POLICY.md`
-- Support: `https://github.com/gmode2020x-tim/jarvis-local-llm/issues`
+- Privacy policy: `https://github.com/gmode2020x-tim/gmode-trip-recorder/blob/main/PRIVACY_POLICY.md`
+- Support: `https://github.com/gmode2020x-tim/gmode-trip-recorder/issues`

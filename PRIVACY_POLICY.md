@@ -52,4 +52,4 @@ The app is a vehicle/trip utility and is not designed for children. It does not 
 
 Policy changes will be published in this repository and identified by a new effective date. Questions or security reports can be opened through the repository's public issue tracker without including location data, access tokens, or other secrets:
 
-https://github.com/gmode2020x-tim/jarvis-local-llm/issues
+https://github.com/gmode2020x-tim/gmode-trip-recorder/issues
