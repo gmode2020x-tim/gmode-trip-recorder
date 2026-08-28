@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory = $false)]
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = '2.1.0'
+    [string]$Version = '2.1.1'
 )
 
 Set-StrictMode -Version Latest

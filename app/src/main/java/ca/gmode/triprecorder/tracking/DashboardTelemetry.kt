@@ -6,18 +6,20 @@ object DashboardTelemetry {
     fun merge(
         stored: LiveTelemetry,
         activeTripId: String?,
+        foregroundLocation: LiveTelemetry? = null,
         sensors: SensorSnapshot?,
         orientation: OrientationSnapshot,
         batteryPercent: Int?,
     ): LiveTelemetry {
         val storedIsCurrent = activeTripId != null && stored.tripId == activeTripId
-        return stored.copy(
-            pressureHpa = sensors?.pressureHpa ?: stored.pressureHpa.takeIf { storedIsCurrent },
+        val base = if (storedIsCurrent) stored else foregroundLocation ?: LiveTelemetry()
+        return base.copy(
+            pressureHpa = sensors?.pressureHpa ?: base.pressureHpa.takeIf { storedIsCurrent },
             accelerationPeakMs2 = sensors?.accelerationPeakMs2
-                ?: stored.accelerationPeakMs2.takeIf { storedIsCurrent },
-            batteryPercent = batteryPercent?.toDouble() ?: stored.batteryPercent.takeIf { storedIsCurrent },
-            pitchDegrees = orientation.pitchDegrees ?: stored.pitchDegrees.takeIf { storedIsCurrent },
-            rollDegrees = orientation.rollDegrees ?: stored.rollDegrees.takeIf { storedIsCurrent },
+                ?: base.accelerationPeakMs2.takeIf { storedIsCurrent },
+            batteryPercent = batteryPercent?.toDouble() ?: base.batteryPercent.takeIf { storedIsCurrent },
+            pitchDegrees = orientation.pitchDegrees ?: base.pitchDegrees.takeIf { storedIsCurrent },
+            rollDegrees = orientation.rollDegrees ?: base.rollDegrees.takeIf { storedIsCurrent },
             magneticHeadingDegrees = orientation.magneticHeadingDegrees,
         )
     }

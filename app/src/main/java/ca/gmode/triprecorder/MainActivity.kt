@@ -62,6 +62,7 @@ import ca.gmode.triprecorder.sync.SyncScheduler
 import ca.gmode.triprecorder.sync.SyncStatusStore
 import ca.gmode.triprecorder.sync.RemoteControlStore
 import ca.gmode.triprecorder.tracking.DashboardTelemetry
+import ca.gmode.triprecorder.tracking.ForegroundLocationMonitor
 import ca.gmode.triprecorder.tracking.GaugeDisplayMath
 import ca.gmode.triprecorder.tracking.LevelCalibration
 import ca.gmode.triprecorder.tracking.LiveTelemetry
@@ -109,6 +110,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var appearanceSettings: AppearanceSettings
     private lateinit var dashboardSettings: DashboardSettings
     private lateinit var liveTelemetryStore: LiveTelemetryStore
+    private lateinit var foregroundLocationMonitor: ForegroundLocationMonitor
     private lateinit var trackingDiagnostics: TrackingDiagnosticStore
     private lateinit var calibrationSensors: SensorCollector
     private lateinit var sideButtonSettings: SideButtonSettings
@@ -169,6 +171,7 @@ class MainActivity : AppCompatActivity() {
         if (locationGranted && captureHomeAfterPermission) captureHomeLocation()
         if (locationGranted && captureWifiAfterPermission) captureCurrentHomeWifi()
         if (locationGranted && saveAutoAfterPermission) saveAutoSettings()
+        if (locationGranted) foregroundLocationMonitor.start()
         startAfterPermission = false
         requestedTripType = null
         captureHomeAfterPermission = false
@@ -239,6 +242,7 @@ class MainActivity : AppCompatActivity() {
         appearanceSettings = AppearanceSettings(this)
         dashboardSettings = DashboardSettings(this)
         liveTelemetryStore = LiveTelemetryStore(this)
+        foregroundLocationMonitor = ForegroundLocationMonitor(this)
         trackingDiagnostics = TrackingDiagnosticStore(this)
         calibrationSensors = SensorCollector(this)
         sideButtonSettings = SideButtonSettings(this)
@@ -500,9 +504,11 @@ class MainActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         calibrationSensors.start()
+        foregroundLocationMonitor.start()
     }
 
     override fun onStop() {
+        foregroundLocationMonitor.stop()
         calibrationSensors.stop()
         super.onStop()
     }
@@ -1303,17 +1309,18 @@ class MainActivity : AppCompatActivity() {
                 val telemetry = DashboardTelemetry.merge(
                     stored = storedTelemetry,
                     activeTripId = active?.id,
+                    foregroundLocation = foregroundLocationMonitor.snapshot(),
                     sensors = dashboardSensors,
                     orientation = calibrationSensors.orientation(),
                     batteryPercent = phoneStatus.batteryPercent,
                 )
                 val gpsLabel: String
                 if (active == null) {
-                    if (::recorderStatus.isInitialized) recorderStatus.text = "Ready to record"
+                    if (::recorderStatus.isInitialized) recorderStatus.text = "Live monitoring — not recording"
                     if (::telemetryStatus.isInitialized) telemetryStatus.text = "$pending points waiting to synchronize"
                     updateCockpit(null, telemetry, duration)
-                    gpsLabel = "GPS STANDBY"
-                    if (::gpsChip.isInitialized) setChip(gpsChip, gpsLabel, false)
+                    gpsLabel = telemetry.accuracyMeters?.let { "GPS ±${it.roundToInt()} M" } ?: "GPS SEARCHING"
+                    if (::gpsChip.isInitialized) setChip(gpsChip, gpsLabel, telemetry.accuracyMeters != null)
                     if (::startButton.isInitialized) startButton.isEnabled = true
                     if (::stopButton.isInitialized) stopButton.isEnabled = false
                 } else {
@@ -1371,8 +1378,8 @@ class MainActivity : AppCompatActivity() {
                     val currentTripType = active?.tripType ?: quickTripType
                     val vehicle = dashboardVehicle(currentTripType)
                     val course = GaugeDisplayMath.hybridCourse(
-                        gpsCourseDegrees = telemetry.bearingDegrees.takeIf { active != null },
-                        speedKph = active?.lastSpeedMps?.times(3.6),
+                        gpsCourseDegrees = telemetry.bearingDegrees,
+                        speedKph = telemetry.speedKph ?: active?.lastSpeedMps?.times(3.6),
                         magneticHeadingDegrees = telemetry.magneticHeadingDegrees,
                     )
                     landscapeCockpit.setState(
@@ -1390,7 +1397,7 @@ class MainActivity : AppCompatActivity() {
                             wifiConnected = phoneStatus.wifiConnected,
                             networkConnected = phoneStatus.networkConnected,
                             bluetoothEnabled = phoneStatus.bluetoothEnabled,
-                            gpsReady = active?.lastAccuracyMeters != null,
+                            gpsReady = telemetry.accuracyMeters != null || active?.lastAccuracyMeters != null,
                             satelliteCount = telemetry.satelliteCount,
                             pendingCount = pending,
                             homeAssistantConnected = configured && !syncFailed,
@@ -1399,7 +1406,7 @@ class MainActivity : AppCompatActivity() {
                             batteryTemperatureC = phoneStatus.batteryTemperatureC,
                             tripDurationLabel = formatDuration(duration),
                             tripLabel = if (active == null) {
-                                "READY • LOCAL-FIRST RECORDING"
+                                "LIVE MONITORING • NOT RECORDING"
                             } else {
                                 "${active.title.uppercase()} • ${formatDuration(duration)} • ${"%.1f".format(active.distanceMeters / 1000)} KM"
                             },
@@ -1525,7 +1532,8 @@ class MainActivity : AppCompatActivity() {
         duration: Duration,
     ): CockpitReading {
         val liveForTrip = active != null && telemetry.tripId == active.id
-        val unavailable = if (active == null) "READY" else "WAITING"
+        val liveGps = telemetry.latitude != null && telemetry.longitude != null
+        val unavailable = if (active == null) "MONITORING" else "WAITING"
         val tripType = active?.tripType ?: quickTripType
         fun reading(
             gaugeId: String,
@@ -1547,7 +1555,7 @@ class MainActivity : AppCompatActivity() {
         )
         return when (id) {
             "speed" -> {
-                val value = if (liveForTrip) telemetry.speedKph else active?.lastSpeedMps?.times(3.6)
+                val value = telemetry.speedKph ?: active?.lastSpeedMps?.times(3.6)
                 reading(id, "Speed", value?.roundToInt()?.toString() ?: "--", "km/h", value, if (value == null) unavailable else "GPS SPEED")
             }
             "trip_time" -> reading(id, "Trip time", formatDuration(duration), "h:mm", duration.toMinutes().toDouble(), if (active == null) "READY" else "RECORDING")
@@ -1556,7 +1564,7 @@ class MainActivity : AppCompatActivity() {
                 reading(id, "Distance", value?.let { "%.1f".format(it) } ?: "--", "km", value, if (value == null) unavailable else "TRIP")
             }
             "altitude" -> {
-                val value = if (liveForTrip) telemetry.altitudeMeters else active?.lastAltitudeMeters
+                val value = telemetry.altitudeMeters ?: active?.lastAltitudeMeters
                 reading(id, "GPS altitude", value?.roundToInt()?.toString() ?: "--", "m", value, if (value == null) unavailable else "WGS84")
             }
             "elevation_gain" -> {
@@ -1564,7 +1572,7 @@ class MainActivity : AppCompatActivity() {
                 reading(id, "Elevation gain", value?.roundToInt()?.toString() ?: "--", "m", value, if (value == null) unavailable else "ASCENT")
             }
             "compass" -> {
-                val value = telemetry.bearingDegrees.takeIf { liveForTrip }
+                val value = telemetry.bearingDegrees
                 reading(id, "GPS course", value?.let(::cardinalDirection) ?: "--", value?.let { "${it.roundToInt()}°" } ?: "degrees", value, if (value == null) unavailable else "COURSE OVER GROUND", value)
             }
             "attitude" -> {
@@ -1596,16 +1604,16 @@ class MainActivity : AppCompatActivity() {
                 reading(id, "Phone battery", value?.roundToInt()?.toString() ?: "--", "%", value, if (value == null) unavailable else "S24")
             }
             "gps_satellites" -> {
-                val value = telemetry.satelliteCount.takeIf { liveForTrip }?.toDouble()
+                val value = telemetry.satelliteCount?.toDouble()
                 reading(id, "GPS satellites", value?.roundToInt()?.toString() ?: "--", "used in fix", value, if (value == null) unavailable else "GNSS")
             }
             "gps_accuracy" -> {
-                val value = telemetry.accuracyMeters.takeIf { liveForTrip } ?: active?.lastAccuracyMeters
+                val value = telemetry.accuracyMeters ?: active?.lastAccuracyMeters
                 reading(id, "GPS accuracy", value?.roundToInt()?.toString() ?: "--", "± m", value, if (value != null) "FIX QUALITY" else unavailable)
             }
             "coordinates" -> {
-                val coordinate = if (liveForTrip && telemetry.latitude != null && telemetry.longitude != null) "%.4f  %.4f".format(telemetry.latitude, telemetry.longitude) else "--"
-                reading(id, "Coordinates", coordinate, "lat / lon", if (liveForTrip) 1.0 else null, if (liveForTrip) "GPS POSITION" else unavailable)
+                val coordinate = if (liveGps) "%.4f  %.4f".format(telemetry.latitude, telemetry.longitude) else "--"
+                reading(id, "Coordinates", coordinate, "lat / lon", if (liveGps) 1.0 else null, if (liveGps) "GPS POSITION" else unavailable)
             }
             "pressure" -> {
                 val value = telemetry.pressureHpa

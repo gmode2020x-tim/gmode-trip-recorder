@@ -3,7 +3,7 @@
 ## Local-first path
 
 1. `TrackingService` runs as a location foreground service while recording.
-2. Fused location and `SensorCollector` produce GPS plus phone telemetry.
+2. `ForegroundLocationMonitor` and `SensorCollector` provide display-only GPS/GNSS plus phone telemetry whenever the cockpit is visible; `TrackingService` persists the same classes of readings only during a trip.
 3. `RecordingRepository` writes the trip and points to Room before any network action.
 4. `SyncScheduler` queues WorkManager with a network constraint.
 5. `UploadWorker` sends a dirty trip in batches of up to 500 points.

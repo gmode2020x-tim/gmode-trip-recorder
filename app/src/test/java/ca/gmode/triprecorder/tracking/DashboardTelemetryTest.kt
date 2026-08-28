@@ -7,6 +7,35 @@ import org.junit.Test
 
 class DashboardTelemetryTest {
     @Test
+    fun foregroundLocationRemainsLiveBeforeATripStarts() {
+        val foreground = LiveTelemetry(
+            latitude = 43.041,
+            longitude = -80.872,
+            speedKph = 4.2,
+            altitudeMeters = 271.0,
+            bearingDegrees = 135.0,
+            accuracyMeters = 6.0,
+            satelliteCount = 11,
+        )
+        val merged = DashboardTelemetry.merge(
+            stored = LiveTelemetry(tripId = "old", latitude = 1.0, satelliteCount = 1),
+            activeTripId = null,
+            foregroundLocation = foreground,
+            sensors = null,
+            orientation = OrientationSnapshot(null, null),
+            batteryPercent = null,
+        )
+
+        assertEquals(43.041, merged.latitude!!, 0.001)
+        assertEquals(-80.872, merged.longitude!!, 0.001)
+        assertEquals(4.2, merged.speedKph!!, 0.001)
+        assertEquals(271.0, merged.altitudeMeters!!, 0.001)
+        assertEquals(135.0, merged.bearingDegrees!!, 0.001)
+        assertEquals(6.0, merged.accuracyMeters!!, 0.001)
+        assertEquals(11, merged.satelliteCount)
+    }
+
+    @Test
     fun foregroundPhoneSensorsRemainLiveBeforeATripStarts() {
         val merged = DashboardTelemetry.merge(
             stored = LiveTelemetry(tripId = "old", pitchDegrees = 99.0, pressureHpa = 800.0),

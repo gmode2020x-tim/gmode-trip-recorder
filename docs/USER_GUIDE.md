@@ -4,6 +4,8 @@
 
 The app opens directly into a full-screen landscape cockpit. It uses a fixed 1280 x 592 reference grid and uniform fit scaling, so different screens may add narrow black letterbox areas but never distort the circular gauge.
 
+While the cockpit is visible, GMODE requests high-accuracy foreground location and GNSS status so speed, altitude, course, accuracy, coordinates, and satellites remain live at home and before a trip begins. These foreground samples are display-only; the app saves route points only during a manual or automatic trip. Monitoring stops when the app is no longer visible.
+
 ![3D Attitude dashboard](../play-store/screenshots/01-attitude-dashboard.png)
 
 ### Top and corner indicators

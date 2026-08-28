@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.1 - 2026-08-28
+
+- Added full foreground GPS and GNSS monitoring whenever the cockpit is visible, even at home with no active trip.
+- Added live idle-state speed, altitude, course, accuracy, coordinates, and satellites without creating or persisting trip points.
+- Changed the idle cockpit status from GPS standby to live GPS searching/fix quality while preserving manual and automatic recording behavior.
+
 ## 2.1.0 - 2026-08-28
 
 - Added an authenticated diagnostic heartbeat on every manual, trip, and periodic sync, including when no trip data is pending.
