@@ -587,7 +587,6 @@ class MainActivityInstrumentedTest {
         render(0.0)
         render(30.0)
         repeat(6) {
-            Thread.sleep(55)
             render(30.0)
         }
         assertTrue("rotation should leave multiple fading line positions", cockpit.attitudeTrailAngles().distinct().size >= 3)

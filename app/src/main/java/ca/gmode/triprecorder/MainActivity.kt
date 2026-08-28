@@ -65,6 +65,7 @@ import ca.gmode.triprecorder.tracking.LevelCalibration
 import ca.gmode.triprecorder.tracking.LiveTelemetry
 import ca.gmode.triprecorder.tracking.LiveTelemetryStore
 import ca.gmode.triprecorder.tracking.SensorCollector
+import ca.gmode.triprecorder.tracking.TrackingDiagnosticStore
 import ca.gmode.triprecorder.tracking.TrackingService
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
@@ -105,6 +106,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var appearanceSettings: AppearanceSettings
     private lateinit var dashboardSettings: DashboardSettings
     private lateinit var liveTelemetryStore: LiveTelemetryStore
+    private lateinit var trackingDiagnostics: TrackingDiagnosticStore
     private lateinit var calibrationSensors: SensorCollector
     private lateinit var sideButtonSettings: SideButtonSettings
     private lateinit var palette: DashboardPalette
@@ -232,6 +234,7 @@ class MainActivity : AppCompatActivity() {
         appearanceSettings = AppearanceSettings(this)
         dashboardSettings = DashboardSettings(this)
         liveTelemetryStore = LiveTelemetryStore(this)
+        trackingDiagnostics = TrackingDiagnosticStore(this)
         calibrationSensors = SensorCollector(this)
         sideButtonSettings = SideButtonSettings(this)
         sideButtonConfig = sideButtonSettings.read()
@@ -477,9 +480,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (::autoEnabledSwitch.isInitialized) {
-            refreshAutoUi()
-            if (autoSettings.read().enabled) autoManager.refreshRegistration { _, _ -> refreshAutoUi() }
+        if (::autoEnabledSwitch.isInitialized) refreshAutoUi()
+        if (autoSettings.read().enabled) {
+            autoManager.refreshRegistration { _, _ ->
+                runOnUiThread {
+                    if (::autoEnabledSwitch.isInitialized) refreshAutoUi()
+                }
+            }
         }
     }
 
@@ -1254,6 +1261,7 @@ class MainActivity : AppCompatActivity() {
                 val active = repository.activeTrip()
                 val pending = repository.pendingPointCount()
                 val storedTelemetry = liveTelemetryStore.read()
+                val gpsDiagnostic = trackingDiagnostics.read()
                 val duration = active?.let { Duration.between(Instant.parse(it.startAt), Instant.now()) } ?: Duration.ZERO
                 val phoneStatus = readDashboardPhoneStatus()
                 val dashboardSensors = if (levelCalibrationInProgress) null else calibrationSensors.snapshotAndReset()
@@ -1280,9 +1288,13 @@ class MainActivity : AppCompatActivity() {
                         append("${"%.2f".format(active.distanceMeters / 1000)} km • $speed km/h")
                         active.lastAccuracyMeters?.let { append(" • GPS ±${it.roundToInt()} m") }
                         append("\n${active.pointCount} recorded • $pending waiting to sync")
+                        if (active.lastAccuracyMeters == null || gpsDiagnostic.retryCount > 0) {
+                            append("\n${gpsDiagnostic.status}")
+                        }
                     }
                     updateCockpit(active, telemetry, duration)
-                    gpsLabel = active.lastAccuracyMeters?.let { "GPS ±${it.roundToInt()} M" } ?: "GPS SEARCHING"
+                    gpsLabel = active.lastAccuracyMeters?.let { "GPS ±${it.roundToInt()} M" }
+                        ?: if (gpsDiagnostic.retryCount > 0) "GPS RETRY ${gpsDiagnostic.retryCount}" else "GPS SEARCHING"
                     if (::gpsChip.isInitialized) setChip(gpsChip, gpsLabel, active.lastAccuracyMeters != null)
                     if (::startButton.isInitialized) startButton.isEnabled = false
                     if (::stopButton.isInitialized) stopButton.isEnabled = true

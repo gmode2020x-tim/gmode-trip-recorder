@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.1 - 2026-08-28
+
+- Fixed automatic departure recording so a missing or uncertain first GPS fix retries instead of silently ending the check.
+- Changed departure confirmation to request high-accuracy GPS with a bounded linear retry backoff.
+- Added an in-trip GPS watchdog that restarts location updates after a request failure or 45 seconds without a fix.
+- Re-arm automatic recording whenever the app resumes, including when it opens directly to the cockpit.
+- Added visible GPS search and retry diagnostics to the cockpit and trip-status panel.
+
 ## 2.0.0 - 2026-08-23
 
 - Promoted the rebuilt landscape cockpit to the public v2 dashboard.

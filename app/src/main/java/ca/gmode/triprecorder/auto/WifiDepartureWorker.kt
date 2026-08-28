@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import androidx.core.content.ContextCompat
+import androidx.work.BackoffPolicy
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -31,10 +32,18 @@ class WifiDepartureWorker(
             state.updateStatus("At home on ${config.homeWifiSsid} — departure cancelled")
             return Result.success()
         }
+        if (ContextCompat.checkSelfPermission(
+                applicationContext,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            state.updateStatus("Home Wi-Fi left — precise location permission is missing; retry ${runAttemptCount + 1}")
+            return Result.retry()
+        }
         val location = currentLocation()
         if (location == null) {
-            state.updateStatus("Home Wi-Fi left — waiting for GPS home-zone confirmation")
-            return Result.success()
+            state.updateStatus("Home Wi-Fi left — no GPS fix; automatic retry ${runAttemptCount + 1}")
+            return Result.retry()
         }
         val results = FloatArray(1)
         Location.distanceBetween(
@@ -50,8 +59,8 @@ class WifiDepartureWorker(
             radiusMeters = config.homeRadiusMeters.toFloat(),
         )
         if (!safelyOutside) {
-            state.updateStatus("Home Wi-Fi left, but GPS still places the phone inside the home zone")
-            return Result.success()
+            state.updateStatus("Home Wi-Fi left — GPS departure confirmation is uncertain; retry ${runAttemptCount + 1}")
+            return Result.retry()
         }
         AutoTripController(applicationContext).handleExit()
         return Result.success()
@@ -59,20 +68,19 @@ class WifiDepartureWorker(
 
     @SuppressLint("MissingPermission")
     private fun currentLocation(): Location? {
-        if (ContextCompat.checkSelfPermission(
-                applicationContext,
-                Manifest.permission.ACCESS_FINE_LOCATION,
-            ) != PackageManager.PERMISSION_GRANTED
-        ) return null
-        return runCatching {
-            val token = CancellationTokenSource()
+        val token = CancellationTokenSource()
+        return try {
             Tasks.await(
                 LocationServices.getFusedLocationProviderClient(applicationContext)
-                    .getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, token.token),
+                    .getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, token.token),
                 LOCATION_TIMEOUT_SECONDS,
                 TimeUnit.SECONDS,
             )
-        }.getOrNull()
+        } catch (_: Exception) {
+            null
+        } finally {
+            token.cancel()
+        }
     }
 
     companion object {
@@ -82,6 +90,7 @@ class WifiDepartureWorker(
         fun schedule(context: Context, delayMinutes: Int) {
             val request = OneTimeWorkRequestBuilder<WifiDepartureWorker>()
                 .setInitialDelay(delayMinutes.coerceIn(1, 30).toLong(), TimeUnit.MINUTES)
+                .setBackoffCriteria(BackoffPolicy.LINEAR, 30L, TimeUnit.SECONDS)
                 .build()
             WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(
                 UNIQUE_WORK_NAME,

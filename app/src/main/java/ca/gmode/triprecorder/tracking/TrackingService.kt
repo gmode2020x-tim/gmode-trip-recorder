@@ -17,6 +17,7 @@ import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
@@ -30,6 +31,7 @@ import ca.gmode.triprecorder.settings.AutoRecordingStateStore
 import ca.gmode.triprecorder.sync.SyncScheduler
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationAvailability
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
@@ -42,13 +44,26 @@ class TrackingService : LifecycleService() {
     private lateinit var sensors: SensorCollector
     private lateinit var locationManager: LocationManager
     private lateinit var liveTelemetry: LiveTelemetryStore
+    private lateinit var diagnostics: TrackingDiagnosticStore
     private var currentTripId: String? = null
     private var satelliteCount: Int? = null
     private var tracking = false
+    private var locationRequest: LocationRequest? = null
+    private var lastFixElapsedRealtimeMs: Long? = null
+    private var gpsRetryCount = 0
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val gpsWatchdog = Runnable { checkGpsHealth() }
 
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
             result.locations.forEach(::recordLocation)
+        }
+
+        override fun onLocationAvailability(availability: LocationAvailability) {
+            if (tracking && !availability.isLocationAvailable && lastFixElapsedRealtimeMs == null) {
+                diagnostics.updateStatus("GPS provider is not returning a location yet", gpsRetryCount)
+                updateNotification("GPS unavailable — automatic retry is active")
+            }
         }
     }
 
@@ -71,6 +86,7 @@ class TrackingService : LifecycleService() {
         sensors = SensorCollector(this)
         locationManager = getSystemService(LocationManager::class.java)
         liveTelemetry = LiveTelemetryStore(this)
+        diagnostics = TrackingDiagnosticStore(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -91,6 +107,8 @@ class TrackingService : LifecycleService() {
     private fun beginTracking(tripId: String?) {
         if (tripId.isNullOrBlank() || tracking) return
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            diagnostics.reset("Precise location permission is missing — recording could not start")
+            updateNotification("Precise location permission is required")
             stopSelf()
             return
         }
@@ -107,12 +125,19 @@ class TrackingService : LifecycleService() {
             .setMinUpdateDistanceMeters(recordingConfig.minimumDistanceMeters.toFloat())
             .setMaxUpdateDelayMillis((intervalMs * 2).coerceAtLeast(10_000L))
             .build()
-        fusedLocation.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
-        updateNotification("Waiting for a GPS fix")
+        locationRequest = request
+        lastFixElapsedRealtimeMs = null
+        gpsRetryCount = 0
+        diagnostics.reset("Starting high-accuracy GPS")
+        requestLocationUpdates("Waiting for a GPS fix")
     }
 
     private fun recordLocation(location: Location) {
         val tripId = currentTripId ?: return
+        lastFixElapsedRealtimeMs = SystemClock.elapsedRealtime()
+        gpsRetryCount = 0
+        diagnostics.markFix(location.accuracy.takeIf { location.hasAccuracy() })
+        scheduleGpsWatchdog()
         lifecycleScope.launch {
             val point = repository.recordLocation(
                 tripId = tripId,
@@ -126,6 +151,69 @@ class TrackingService : LifecycleService() {
             updateNotification("${"%.0f".format(speedKmh)} km/h$accuracy • saved on phone")
             SyncScheduler.enqueue(this@TrackingService)
         }
+    }
+
+    private fun requestLocationUpdates(waitingMessage: String) {
+        if (!tracking) return
+        val request = locationRequest ?: return
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            diagnostics.updateStatus("Precise location permission was removed", gpsRetryCount)
+            updateNotification("GPS permission removed — open GMODE settings")
+            scheduleGpsWatchdog(GpsRecoveryPolicy.REQUEST_FAILURE_RETRY_MS)
+            return
+        }
+        if (!locationManager.isLocationEnabled) {
+            diagnostics.updateStatus("Phone location is off — waiting and retrying", gpsRetryCount)
+            updateNotification("Phone location is off — retrying automatically")
+            scheduleGpsWatchdog(GpsRecoveryPolicy.REQUEST_FAILURE_RETRY_MS)
+            return
+        }
+        fusedLocation.removeLocationUpdates(locationCallback).addOnCompleteListener {
+            if (!tracking) return@addOnCompleteListener
+            fusedLocation.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
+                .addOnSuccessListener {
+                    diagnostics.updateStatus(waitingMessage, gpsRetryCount)
+                    updateNotification(waitingMessage)
+                    scheduleGpsWatchdog()
+                }
+                .addOnFailureListener { error ->
+                    gpsRetryCount += 1
+                    val message = "GPS request failed — retry $gpsRetryCount: ${error.message ?: error.javaClass.simpleName}"
+                    diagnostics.updateStatus(message, gpsRetryCount)
+                    updateNotification("GPS request failed — retrying automatically")
+                    scheduleGpsWatchdog(GpsRecoveryPolicy.REQUEST_FAILURE_RETRY_MS)
+                }
+        }
+    }
+
+    private fun checkGpsHealth() {
+        if (!tracking) return
+        val now = SystemClock.elapsedRealtime()
+        if (GpsRecoveryPolicy.fixIsStale(now, lastFixElapsedRealtimeMs)) {
+            gpsRetryCount += 1
+            val message = if (locationManager.isLocationEnabled) {
+                "No GPS fix after 45 seconds — retry $gpsRetryCount"
+            } else {
+                "Phone location is off — retry $gpsRetryCount"
+            }
+            diagnostics.updateStatus(message, gpsRetryCount)
+            updateNotification("$message • recording remains active")
+            requestLocationUpdates(message)
+        } else {
+            scheduleGpsWatchdog()
+        }
+    }
+
+    private fun scheduleGpsWatchdog(delayMs: Long? = null) {
+        mainHandler.removeCallbacks(gpsWatchdog)
+        if (!tracking) return
+        val now = SystemClock.elapsedRealtime()
+        val computedDelay = if (GpsRecoveryPolicy.fixIsStale(now, lastFixElapsedRealtimeMs)) {
+            GpsRecoveryPolicy.FIX_TIMEOUT_MS
+        } else {
+            GpsRecoveryPolicy.nextWatchdogDelayMs(now, lastFixElapsedRealtimeMs)
+        }
+        mainHandler.postDelayed(gpsWatchdog, delayMs ?: computedDelay)
     }
 
     private fun stopTripAndService() {
@@ -146,12 +234,16 @@ class TrackingService : LifecycleService() {
     }
 
     private fun stopTrackingResources() {
+        mainHandler.removeCallbacks(gpsWatchdog)
         if (!tracking) return
         tracking = false
         fusedLocation.removeLocationUpdates(locationCallback)
         sensors.stop()
         runCatching { locationManager.unregisterGnssStatusCallback(gnssCallback) }
         currentTripId = null
+        locationRequest = null
+        lastFixElapsedRealtimeMs = null
+        diagnostics.updateStatus("Trip stopped — GPS standby", 0)
     }
 
     private fun phoneSnapshot(): PhoneSnapshot {
