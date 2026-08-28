@@ -124,6 +124,15 @@ class DashboardSettingsTest {
     }
 
     @Test
+    fun legacyGpsGaugesMergeIntoOneGpsSkyGauge() {
+        val config = DashboardConfig(
+            gaugeIds = listOf("speed", "coordinates", "gps_accuracy", "gps_satellites", "battery"),
+        ).normalized()
+
+        assertEquals(listOf("speed", "gps_sky", "battery"), config.gaugeIds)
+    }
+
+    @Test
     fun warningLimitsAreOrderedAndBounded() {
         val config = DashboardConfig(attitudeCautionDegrees = 44.0, attitudeLimitDegrees = 20.0).normalized()
         assertEquals(40.0, config.attitudeCautionDegrees, 0.0)

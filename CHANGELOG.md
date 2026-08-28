@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.2 - 2026-08-28
+
+- Combined Coordinates, GPS Accuracy, and GPS Satellites into one automatically migrated GPS Sky gauge.
+- Added a real north-up satellite sky plot using Android GNSS azimuth and elevation, with per-satellite constellation/SVID labels.
+- Added green, amber, and red C/N0 signal-strength bands, visible-versus-used-in-fix styling, a scaled horizontal-accuracy radius, live coordinates, speed, altitude, and course.
+
 ## 2.1.1 - 2026-08-28
 
 - Added full foreground GPS and GNSS monitoring whenever the cockpit is visible, even at home with no active trip.

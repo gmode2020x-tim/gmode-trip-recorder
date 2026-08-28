@@ -19,7 +19,7 @@ Record Street, Off road, Snow, or Water trips even when Home Assistant is unreac
 
 The v2 cockpit features a dynamic 3D vehicle matched to the trip scene: Truck, SxS, Sand rail, Snowmobile, or Mini jet boat. Live pitch and roll, GPS/magnetic course, an attitude history line, and configurable orange/red stability warnings share one clear central instrument.
 
-Choose and reorder 13 gauges, customize six side buttons to open installed apps or GMODE actions, select a colour theme, and calibrate pitch/roll zero for the phone mount.
+Choose and reorder 11 gauges, including a combined GNSS sky plot with real satellite placement, colour-coded signal strength, fix-use status, accuracy radius, and position data. Customize six side buttons to open installed apps or GMODE actions, select a colour theme, and calibrate pitch/roll zero for the phone mount.
 
 Trips can be started manually or automatically after leaving a user-selected home GPS zone and optional Wi-Fi network. Automatic recording is opt-in and off by default. Export retained trips as GPX, KML, GeoJSON, or full-telemetry CSV.
 
@@ -37,7 +37,7 @@ Suggested screenshot captions:
 
 1. Dynamic 3D attitude, radial course, and live phone status.
 2. Solid orange/red outer-bezel stability warnings.
-3. Logical scales across 13 reorderable gauges.
+3. Combined GNSS sky plot plus logical scales across 11 reorderable gauges.
 4. Automatic GPS + Wi-Fi home departure detection.
 5. Six editable controls that launch your installed apps.
 6. Local-first Home Assistant synchronization and trip export.

@@ -23,9 +23,13 @@ import ca.gmode.triprecorder.settings.SideButtonSettings
 import ca.gmode.triprecorder.settings.SideButtonSlot
 import ca.gmode.triprecorder.settings.DashboardSettings
 import ca.gmode.triprecorder.tracking.GaugeDisplayMath
+import ca.gmode.triprecorder.tracking.GnssSatelliteObservation
+import ca.gmode.triprecorder.tracking.GnssSignalQuality
+import ca.gmode.triprecorder.tracking.GpsSkyMath
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 data class CockpitReading(
@@ -37,6 +41,17 @@ data class CockpitReading(
     val angleDegrees: Double? = null,
     val gaugeId: String = "",
     val numericValue: Double? = null,
+    val gpsSky: GpsSkyReading? = null,
+)
+
+data class GpsSkyReading(
+    val latitude: Double?,
+    val longitude: Double?,
+    val accuracyMeters: Double?,
+    val altitudeMeters: Double?,
+    val speedKph: Double?,
+    val courseDegrees: Double?,
+    val satellites: List<GnssSatelliteObservation>,
 )
 
 data class CockpitState(
@@ -282,12 +297,13 @@ class LandscapeCockpitView(context: Context) : View(context) {
         drawReferenceText(canvas, state.time, 640f, 55f, 44f, Color.WHITE, true)
         drawReferenceText(canvas, reading.title.uppercase(), 640f, 136f, 18f, Color.WHITE, true)
         val valueSize = when {
-            reading.gaugeId == "coordinates" -> 24f
             reading.value.length > 10 -> 28f
             else -> 38f
         }
         if (reading.gaugeId == "attitude") {
             drawAttitudeStatus(canvas)
+        } else if (reading.gaugeId == "gps_sky") {
+            drawGpsSkyStatus(canvas, reading.gpsSky)
         } else {
             drawReferenceText(canvas, reading.value, 640f, 402f, valueSize, palette.accent, true)
             if (reading.unit.isNotBlank()) drawReferenceText(canvas, reading.unit, 640f, 426f, 13f, Color.LTGRAY, false)
@@ -393,7 +409,11 @@ class LandscapeCockpitView(context: Context) : View(context) {
         when (spec.faceStyle) {
             GaugeFaceStyle.ATTITUDE_PITCH -> drawPitchGaugeMarks(canvas)
             GaugeFaceStyle.ATTITUDE_ROLL -> drawRollGaugeMarks(canvas, spec)
-            GaugeFaceStyle.INFO -> drawCoordinateGrid(canvas)
+            GaugeFaceStyle.INFO -> if (reading.gaugeId == "gps_sky") {
+                drawGpsSkyView(canvas, reading.gpsSky)
+            } else {
+                drawCoordinateGrid(canvas)
+            }
             else -> drawScaledGaugeMarks(canvas, reading, spec)
         }
     }
@@ -922,6 +942,106 @@ class LandscapeCockpitView(context: Context) : View(context) {
         canvas.drawCircle(640f, 278f, 8f, paint)
         canvas.drawLine(640f, 252f, 640f, 304f, paint)
         canvas.drawLine(614f, 278f, 666f, 278f, paint)
+    }
+
+    private fun drawGpsSkyView(canvas: Canvas, gps: GpsSkyReading?) {
+        val cx = 640f
+        val cy = 270f
+        val radius = 105f
+        val gridColor = Color.argb(100, 255, 255, 255)
+
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1f
+        paint.color = gridColor
+        canvas.drawCircle(cx, cy, radius, paint)
+        canvas.drawCircle(cx, cy, radius * 2f / 3f, paint)
+        canvas.drawCircle(cx, cy, radius / 3f, paint)
+        canvas.drawLine(cx - radius, cy, cx + radius, cy, paint)
+        canvas.drawLine(cx, cy - radius, cx, cy + radius, paint)
+
+        drawReferenceText(canvas, "N", cx, cy - radius - 7f, 10f, Color.WHITE, true)
+        drawReferenceText(canvas, "E", cx + radius + 9f, cy + 4f, 10f, Color.WHITE, true)
+        drawReferenceText(canvas, "S", cx, cy + radius + 10f, 10f, Color.WHITE, true)
+        drawReferenceText(canvas, "W", cx - radius - 10f, cy + 4f, 10f, Color.WHITE, true)
+
+        val accuracyRadius = GpsSkyMath.accuracyRadius(gps?.accuracyMeters, 43f)
+        if (accuracyRadius > 0f) {
+            paint.style = Paint.Style.FILL
+            paint.color = Color.argb(38, Color.red(palette.accent), Color.green(palette.accent), Color.blue(palette.accent))
+            canvas.drawCircle(cx, cy, accuracyRadius, paint)
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = 1.5f
+            paint.color = Color.argb(210, Color.red(palette.accent), Color.green(palette.accent), Color.blue(palette.accent))
+            canvas.drawCircle(cx, cy, accuracyRadius, paint)
+        }
+
+        gps?.satellites?.forEach { satellite ->
+            val offset = GpsSkyMath.project(satellite.azimuthDegrees, satellite.elevationDegrees, radius - 7f)
+            val x = cx + offset.x
+            val y = cy + offset.y
+            val color = satelliteSignalColor(satellite)
+            paint.color = color
+            paint.strokeWidth = if (satellite.usedInFix) 2f else 1.3f
+            paint.style = if (satellite.usedInFix) Paint.Style.FILL else Paint.Style.STROKE
+            canvas.drawCircle(x, y, if (satellite.usedInFix) 6f else 5f, paint)
+            if (satellite.usedInFix) {
+                paint.style = Paint.Style.STROKE
+                paint.color = Color.WHITE
+                paint.strokeWidth = 1f
+                canvas.drawCircle(x, y, 7.5f, paint)
+            }
+            drawReferenceText(
+                canvas,
+                "${constellationLabel(satellite.constellationType)}${satellite.svid}",
+                x,
+                y - 9f,
+                7f,
+                color,
+                true,
+            )
+        }
+
+        paint.style = Paint.Style.FILL
+        paint.color = palette.accent
+        canvas.drawCircle(cx, cy, 4f, paint)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 2f
+        canvas.drawCircle(cx, cy, 9f, paint)
+        canvas.drawLine(cx - 14f, cy, cx + 14f, cy, paint)
+        canvas.drawLine(cx, cy - 14f, cx, cy + 14f, paint)
+    }
+
+    private fun drawGpsSkyStatus(canvas: Canvas, gps: GpsSkyReading?) {
+        val used = gps?.satellites?.count { it.usedInFix } ?: 0
+        val visible = gps?.satellites?.size ?: 0
+        val accuracy = gps?.accuracyMeters?.let { "±${it.roundToInt()}m" } ?: "NO FIX"
+        val speed = gps?.speedKph?.let { "${it.roundToInt()} km/h" } ?: "-- km/h"
+        drawReferenceText(canvas, "USED $used/$visible   $accuracy   $speed", 640f, 403f, 13f, palette.accent, true)
+        val coordinates = if (gps?.latitude != null && gps.longitude != null) {
+            "%.4f  %.4f".format(gps.latitude, gps.longitude)
+        } else {
+            "WAITING FOR POSITION"
+        }
+        drawReferenceText(canvas, coordinates, 640f, 423f, 12f, Color.LTGRAY, true)
+    }
+
+    private fun satelliteSignalColor(satellite: GnssSatelliteObservation): Int = when (
+        GpsSkyMath.signalQuality(satellite.cn0DbHz)
+    ) {
+        GnssSignalQuality.STRONG -> Color.parseColor("#20B94B")
+        GnssSignalQuality.FAIR -> Color.parseColor("#FFB000")
+        GnssSignalQuality.WEAK -> Color.parseColor("#E5091B")
+    }
+
+    private fun constellationLabel(type: Int): String = when (type) {
+        1 -> "G" // GPS
+        2 -> "S" // SBAS
+        3 -> "R" // GLONASS
+        4 -> "Q" // QZSS
+        5 -> "B" // BeiDou
+        6 -> "E" // Galileo
+        7 -> "I" // NavIC/IRNSS
+        else -> "?"
     }
 
     private fun gaugeZoneColor(role: GaugeZoneRole): Int = when (role) {

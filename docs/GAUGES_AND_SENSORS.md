@@ -1,6 +1,6 @@
 # Gauges and Sensors
 
-The app exposes 13 selectable instruments. Outer ticks, inner labels, zones, and the needle/progress calculation use the same scale specification so they stay aligned.
+The app exposes 11 selectable instruments. Outer ticks, inner labels, zones, and the needle/progress calculation use the same scale specification so they stay aligned.
 
 | Gauge | Source | Scale and behaviour |
 | --- | --- | --- |
@@ -13,9 +13,7 @@ The app exposes 13 selectable instruments. Outer ticks, inner labels, zones, and
 | 3D pitch + roll | S24 rotation-vector sensor plus saved zero | +/-45 degree roll/pitch scale, 15 degree labels, 5 degree ticks; dynamic 3D vehicle, attitude line/trail, course arcs, user caution/limit bezel. |
 | Shock peak | Linear acceleration | 0-3 g, 0.5 g labels, 0.25 g minor ticks; 2-2.5 g caution, 2.5-3 g danger. This is a phone-sensor impact estimate, not certified vehicle instrumentation. |
 | Phone battery | Android battery service | 0-100%; below 15 danger, 15-30 caution, 30-100 good. |
-| GPS satellites | Android GNSS status | 0-30 used in fix; 0-4 danger, 4-8 caution, 8-30 good. |
-| GPS accuracy | GPS horizontal uncertainty | Nonlinear quality scale 100+/50/25/10/5/0 m; smaller is better. |
-| Coordinates | GPS position | Decimal latitude/longitude information pane; no artificial dial scale. |
+| GPS sky + position | Android GNSS status and fused GPS | North-up sky plot using real satellite azimuth/elevation. Satellites show constellation/SVID and green (35+ dB-Hz), amber (25-34.9 dB-Hz), or red (under 25 dB-Hz) signal; white-ringed satellites are used in the fix. The centre position includes a scaled horizontal-accuracy radius plus coordinates, speed, altitude, and course. Legacy Satellite, Accuracy, or Coordinates selections migrate to this gauge. |
 | Station pressure | S24 barometer | 850-1,050 hPa, 50 hPa labels, 10 hPa minor ticks. It is station pressure, not sea-level corrected weather pressure. |
 
 ## Recorded telemetry

@@ -35,8 +35,19 @@ class ForegroundLocationMonitor(context: Context) {
 
     private val gnssCallback = object : GnssStatus.Callback() {
         override fun onSatelliteStatusChanged(status: GnssStatus) {
+            val satellites = (0 until status.satelliteCount).map { index ->
+                GnssSatelliteObservation(
+                    svid = status.getSvid(index),
+                    constellationType = status.getConstellationType(index),
+                    azimuthDegrees = status.getAzimuthDegrees(index),
+                    elevationDegrees = status.getElevationDegrees(index),
+                    cn0DbHz = status.getCn0DbHz(index),
+                    usedInFix = status.usedInFix(index),
+                )
+            }
             latest = latest.copy(
-                satelliteCount = (0 until status.satelliteCount).count { status.usedInFix(it) },
+                satelliteCount = satellites.count { it.usedInFix },
+                gnssSatellites = satellites,
                 updatedAtEpochMs = System.currentTimeMillis(),
             )
         }

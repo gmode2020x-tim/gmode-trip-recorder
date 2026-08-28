@@ -1532,7 +1532,6 @@ class MainActivity : AppCompatActivity() {
         duration: Duration,
     ): CockpitReading {
         val liveForTrip = active != null && telemetry.tripId == active.id
-        val liveGps = telemetry.latitude != null && telemetry.longitude != null
         val unavailable = if (active == null) "MONITORING" else "WAITING"
         val tripType = active?.tripType ?: quickTripType
         fun reading(
@@ -1603,18 +1602,29 @@ class MainActivity : AppCompatActivity() {
                 val value = telemetry.batteryPercent
                 reading(id, "Phone battery", value?.roundToInt()?.toString() ?: "--", "%", value, if (value == null) unavailable else "S24")
             }
-            "gps_satellites" -> {
-                val value = telemetry.satelliteCount?.toDouble()
-                reading(id, "GPS satellites", value?.roundToInt()?.toString() ?: "--", "used in fix", value, if (value == null) unavailable else "GNSS")
-            }
-            "gps_accuracy" -> {
-                val value = telemetry.accuracyMeters ?: active?.lastAccuracyMeters
-                reading(id, "GPS accuracy", value?.roundToInt()?.toString() ?: "--", "± m", value, if (value != null) "FIX QUALITY" else unavailable)
-            }
-            "coordinates" -> {
-                val coordinate = if (liveGps) "%.4f  %.4f".format(telemetry.latitude, telemetry.longitude) else "--"
-                reading(id, "Coordinates", coordinate, "lat / lon", if (liveGps) 1.0 else null, if (liveGps) "GPS POSITION" else unavailable)
-            }
+            "gps_sky" -> CockpitReading(
+                title = "GPS Sky",
+                value = "",
+                unit = "",
+                progress = telemetry.accuracyMeters?.let { GaugeScaleCatalog.accuracyProgress(it) },
+                subtitle = buildString {
+                    append(telemetry.altitudeMeters?.let { "ALT ${it.roundToInt()}M" } ?: "ALT --")
+                    append(" • ")
+                    append(telemetry.bearingDegrees?.let { "CRS ${it.roundToInt()}°" } ?: "CRS --")
+                    append(" • G/A/R SIGNAL")
+                },
+                gaugeId = id,
+                numericValue = telemetry.accuracyMeters,
+                gpsSky = GpsSkyReading(
+                    latitude = telemetry.latitude,
+                    longitude = telemetry.longitude,
+                    accuracyMeters = telemetry.accuracyMeters ?: active?.lastAccuracyMeters,
+                    altitudeMeters = telemetry.altitudeMeters ?: active?.lastAltitudeMeters,
+                    speedKph = telemetry.speedKph ?: active?.lastSpeedMps?.times(3.6),
+                    courseDegrees = telemetry.bearingDegrees,
+                    satellites = telemetry.gnssSatellites,
+                ),
+            )
             "pressure" -> {
                 val value = telemetry.pressureHpa
                 reading(id, "Station pressure", value?.let { "%.0f".format(it) } ?: "--", "hPa", value, if (value == null) unavailable else "S24 BAROMETER")

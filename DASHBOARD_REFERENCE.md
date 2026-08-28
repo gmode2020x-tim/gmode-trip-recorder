@@ -41,10 +41,10 @@ Top/bottom icons are 15 px inward from the former grid; middle icons are 15 px o
 
 ## Live central gauge
 
-- Thirteen selectable gauge definitions share the same aperture.
+- Eleven selectable gauge definitions share the same aperture.
 - All selected instruments are reachable with wrapping footer navigation; there is no count limit.
 - Outer decorative ticks are covered and rebuilt from the same `GaugeScaleSpec` as inner labels and needle/progress.
-- Information faces such as Coordinates intentionally have no artificial dial ticks.
+- The GPS Sky information face replaces the separate Coordinates, GPS Accuracy, and GPS Satellites faces. It uses a north-up azimuth/elevation plot, C/N0 signal colours, fix-use rings, and a centred accuracy-radius overlay rather than artificial dial ticks.
 
 ## 3D Attitude face
 

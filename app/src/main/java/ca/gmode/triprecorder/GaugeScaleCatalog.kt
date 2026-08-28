@@ -105,7 +105,7 @@ object GaugeScaleCatalog {
                 GaugeZone(3.0, 5.0, GaugeZoneRole.GOOD),
             ),
         )
-        "coordinates" -> GaugeScaleSpec(gaugeId, GaugeFaceStyle.INFO, 0.0, 1.0, emptyList())
+        "gps_sky", "coordinates" -> GaugeScaleSpec(gaugeId, GaugeFaceStyle.INFO, 0.0, 1.0, emptyList())
         "pressure" -> analog(gaugeId, 850.0, 1_050.0, 50.0, 10.0)
         else -> analog(gaugeId, 0.0, 100.0, 20.0, 10.0)
     }

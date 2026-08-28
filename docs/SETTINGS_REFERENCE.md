@@ -58,7 +58,7 @@ Factory defaults: Left top Spotify, Left middle Navi/Maps, Left bottom Camera, R
 | 3D camera | Chase | Chase, Free orbit, Locked high rear | Controls touch orbit and return behaviour. |
 | Caution start | 15 degrees | 5-40 degrees | Orange status/bezel when absolute pitch or roll reaches this value. |
 | Limit start | 30 degrees | At least caution + 5, max 60 degrees | Red pulsing status/bezel threshold. |
-| Gauge switches | Attitude, Speed, Course | At least one of 13 | Enables gauge faces. |
+| Gauge switches | Attitude, Speed, Course | At least one of 11 | Enables gauge faces. GPS Sky combines satellites, accuracy, coordinates, speed, altitude, and course. |
 | Up/down arrows | Default order | Any order | Sets footer-navigation order without a count limit. |
 | Calibrate zero | 0/0 until set | Stationary sample | Saves phone-mount pitch and roll offsets. |
 

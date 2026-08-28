@@ -33,7 +33,13 @@ data class DashboardConfig(
             ?: DashboardSettings.DEFAULT_OFF_ROAD_SCENE_ID
         val known = DashboardSettings.GAUGES.mapTo(mutableSetOf()) { it.id }
         val ordered = gaugeIds
-            .map { if (it == "pitch" || it == "roll") "attitude" else it }
+            .map {
+                when (it) {
+                    "pitch", "roll" -> "attitude"
+                    "gps_satellites", "gps_accuracy", "coordinates" -> "gps_sky"
+                    else -> it
+                }
+            }
             .filter { it in known }
             .distinct()
         val caution = attitudeCautionDegrees.takeIf { it.isFinite() }?.coerceIn(5.0, 40.0)
@@ -159,9 +165,7 @@ class DashboardSettings(context: Context) {
             GaugeDefinition("attitude", "3D pitch + roll"),
             GaugeDefinition("g_force", "Shock peak"),
             GaugeDefinition("battery", "Phone battery"),
-            GaugeDefinition("gps_satellites", "GPS satellites"),
-            GaugeDefinition("gps_accuracy", "GPS accuracy"),
-            GaugeDefinition("coordinates", "Coordinates"),
+            GaugeDefinition("gps_sky", "GPS sky + position"),
             GaugeDefinition("pressure", "Station pressure"),
         )
 

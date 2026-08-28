@@ -6,6 +6,8 @@ The app opens directly into a full-screen landscape cockpit. It uses a fixed 128
 
 While the cockpit is visible, GMODE requests high-accuracy foreground location and GNSS status so speed, altitude, course, accuracy, coordinates, and satellites remain live at home and before a trip begins. These foreground samples are display-only; the app saves route points only during a manual or automatic trip. Monitoring stops when the app is no longer visible.
 
+Select **GPS sky + position** under the gauge settings to see every visible satellite placed by its real azimuth and elevation around your centred position. Green satellites have strong signal, amber are fair, red are weak, and a white outer ring means Android is using that satellite in the current fix. The translucent centre circle visualizes horizontal uncertainty; the readout also combines used/visible counts, accuracy, speed, coordinates, altitude, and course. Older GPS Satellite, GPS Accuracy, and Coordinates selections migrate automatically to this single gauge.
+
 ![3D Attitude dashboard](../play-store/screenshots/01-attitude-dashboard.png)
 
 ### Top and corner indicators

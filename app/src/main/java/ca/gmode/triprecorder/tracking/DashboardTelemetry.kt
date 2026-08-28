@@ -14,6 +14,8 @@ object DashboardTelemetry {
         val storedIsCurrent = activeTripId != null && stored.tripId == activeTripId
         val base = if (storedIsCurrent) stored else foregroundLocation ?: LiveTelemetry()
         return base.copy(
+            satelliteCount = foregroundLocation?.satelliteCount ?: base.satelliteCount,
+            gnssSatellites = foregroundLocation?.gnssSatellites.orEmpty().ifEmpty { base.gnssSatellites },
             pressureHpa = sensors?.pressureHpa ?: base.pressureHpa.takeIf { storedIsCurrent },
             accelerationPeakMs2 = sensors?.accelerationPeakMs2
                 ?: base.accelerationPeakMs2.takeIf { storedIsCurrent },

@@ -36,6 +36,25 @@ class DashboardTelemetryTest {
     }
 
     @Test
+    fun foregroundSatelliteGeometryRemainsAvailableDuringATrip() {
+        val satellites = listOf(
+            GnssSatelliteObservation(7, 1, 90f, 45f, 38f, true),
+            GnssSatelliteObservation(12, 6, 210f, 20f, 24f, false),
+        )
+        val merged = DashboardTelemetry.merge(
+            stored = LiveTelemetry(tripId = "active", satelliteCount = 1),
+            activeTripId = "active",
+            foregroundLocation = LiveTelemetry(satelliteCount = 1, gnssSatellites = satellites),
+            sensors = null,
+            orientation = OrientationSnapshot(null, null),
+            batteryPercent = null,
+        )
+
+        assertEquals(satellites, merged.gnssSatellites)
+        assertEquals(1, merged.satelliteCount)
+    }
+
+    @Test
     fun foregroundPhoneSensorsRemainLiveBeforeATripStarts() {
         val merged = DashboardTelemetry.merge(
             stored = LiveTelemetry(tripId = "old", pitchDegrees = 99.0, pressureHpa = 800.0),

@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.ListenableWorker
 import androidx.work.testing.TestListenableWorkerBuilder
+import ca.gmode.triprecorder.BuildConfig
 import ca.gmode.triprecorder.data.AppDatabase
 import ca.gmode.triprecorder.data.PointEntity
 import ca.gmode.triprecorder.data.TripEntity
@@ -134,7 +135,7 @@ class UploadWorkerInstrumentedTest {
 
         assertResultType(ListenableWorker.Result.success(), result)
         assertEquals(2, diagnosticBodies.size)
-        assertEquals("2.1.0", diagnosticBodies.last().getString("appVersion"))
+        assertEquals(BuildConfig.VERSION_NAME, diagnosticBodies.last().getString("appVersion"))
         assertTrue(diagnosticBodies.last().has("snapshot"))
         assertTrue(diagnosticBodies.last().has("logs"))
     }

@@ -4,6 +4,15 @@ import android.content.Context
 import ca.gmode.triprecorder.data.PointEntity
 import kotlin.math.abs
 
+data class GnssSatelliteObservation(
+    val svid: Int,
+    val constellationType: Int,
+    val azimuthDegrees: Float,
+    val elevationDegrees: Float,
+    val cn0DbHz: Float,
+    val usedInFix: Boolean,
+)
+
 data class LiveTelemetry(
     val tripId: String? = null,
     val latitude: Double? = null,
@@ -17,6 +26,7 @@ data class LiveTelemetry(
     val accelerationPeakMs2: Double? = null,
     val batteryPercent: Double? = null,
     val satelliteCount: Int? = null,
+    val gnssSatellites: List<GnssSatelliteObservation> = emptyList(),
     val pitchDegrees: Double? = null,
     val rollDegrees: Double? = null,
     val magneticHeadingDegrees: Double? = null,

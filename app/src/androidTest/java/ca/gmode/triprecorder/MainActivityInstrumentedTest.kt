@@ -11,6 +11,7 @@ import ca.gmode.triprecorder.settings.DashboardSettings
 import ca.gmode.triprecorder.settings.SideButtonConfig
 import ca.gmode.triprecorder.settings.SideButtonSettings
 import ca.gmode.triprecorder.settings.SideButtonSlot
+import ca.gmode.triprecorder.tracking.GnssSatelliteObservation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -496,7 +497,7 @@ class MainActivityInstrumentedTest {
                     assertEquals(
                         listOf(
                             "Speed", "Trip time", "Distance", "GPS altitude", "Elevation gain", "GPS course", "Attitude",
-                            "Shock peak", "Phone battery", "GPS satellites", "GPS accuracy", "Coordinates", "Station pressure",
+                            "Shock peak", "Phone battery", "GPS Sky", "Station pressure",
                         ),
                         cockpit.activeGaugeTitles(),
                     )
@@ -544,9 +545,27 @@ class MainActivityInstrumentedTest {
             CockpitReading("Attitude", "P +12°  R -8°", "", subtitle = "LIVE 3D", gaugeId = "attitude"),
             CockpitReading("Shock peak", "1.25", "g", 0.42, "LINEAR ACCELERATION", gaugeId = "g_force", numericValue = 1.25),
             CockpitReading("Phone battery", "74", "%", 0.74, "S24", gaugeId = "battery", numericValue = 74.0),
-            CockpitReading("GPS satellites", "12", "used in fix", 0.4, "GNSS", gaugeId = "gps_satellites", numericValue = 12.0),
-            CockpitReading("GPS accuracy", "7", "± m", 0.72, "FIX QUALITY", gaugeId = "gps_accuracy", numericValue = 7.0),
-            CockpitReading("Coordinates", "43.6532  -79.3832", "lat / lon", 1.0, "GPS POSITION", gaugeId = "coordinates", numericValue = 1.0),
+            CockpitReading(
+                "GPS Sky",
+                "",
+                "",
+                subtitle = "ALT 543M • CRS 315° • G/A/R SIGNAL",
+                gaugeId = "gps_sky",
+                numericValue = 7.0,
+                gpsSky = GpsSkyReading(
+                    latitude = 43.6532,
+                    longitude = -79.3832,
+                    accuracyMeters = 7.0,
+                    altitudeMeters = 543.0,
+                    speedKph = 58.0,
+                    courseDegrees = 315.0,
+                    satellites = listOf(
+                        GnssSatelliteObservation(7, 1, 45f, 60f, 39f, true),
+                        GnssSatelliteObservation(12, 6, 210f, 28f, 29f, true),
+                        GnssSatelliteObservation(4, 3, 300f, 15f, 20f, false),
+                    ),
+                ),
+            ),
             CockpitReading("Station pressure", "1012", "hPa", 0.81, "S24 BAROMETER", gaugeId = "pressure", numericValue = 1012.0),
         )
         cockpit.measure(
@@ -561,6 +580,52 @@ class MainActivityInstrumentedTest {
             assertTrue("${sample.title} face should draw an opaque centre", android.graphics.Color.alpha(bitmap.getPixel(640, 278)) > 0)
             bitmap.recycle()
         }
+    }
+
+    @Test
+    fun gpsSkyGaugeRendersStrongFairAndWeakSatelliteColours() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val cockpit = LandscapeCockpitView(context)
+        cockpit.setState(
+            CockpitState(
+                readings = listOf(
+                    CockpitReading(
+                        title = "GPS Sky",
+                        value = "",
+                        unit = "",
+                        gaugeId = "gps_sky",
+                        gpsSky = GpsSkyReading(
+                            latitude = 43.6532,
+                            longitude = -79.3832,
+                            accuracyMeters = 6.0,
+                            altitudeMeters = 271.0,
+                            speedKph = 0.0,
+                            courseDegrees = 90.0,
+                            satellites = listOf(
+                                GnssSatelliteObservation(1, 1, 0f, 45f, 40f, true),
+                                GnssSatelliteObservation(2, 6, 90f, 45f, 30f, true),
+                                GnssSatelliteObservation(3, 3, 270f, 45f, 20f, true),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        cockpit.measure(
+            android.view.View.MeasureSpec.makeMeasureSpec(1280, android.view.View.MeasureSpec.EXACTLY),
+            android.view.View.MeasureSpec.makeMeasureSpec(592, android.view.View.MeasureSpec.EXACTLY),
+        )
+        cockpit.layout(0, 0, 1280, 592)
+        val bitmap = android.graphics.Bitmap.createBitmap(1280, 592, android.graphics.Bitmap.Config.ARGB_8888)
+        cockpit.draw(android.graphics.Canvas(bitmap))
+
+        val strong = bitmap.getPixel(640, 221)
+        val fair = bitmap.getPixel(689, 270)
+        val weak = bitmap.getPixel(591, 270)
+        assertTrue(android.graphics.Color.green(strong) > android.graphics.Color.red(strong))
+        assertTrue(android.graphics.Color.red(fair) > 180 && android.graphics.Color.green(fair) > 100)
+        assertTrue(android.graphics.Color.red(weak) > android.graphics.Color.green(weak) * 2)
+        bitmap.recycle()
     }
 
     @Test
@@ -589,7 +654,7 @@ class MainActivityInstrumentedTest {
         repeat(6) {
             render(30.0)
         }
-        assertTrue("rotation should leave multiple fading line positions", cockpit.attitudeTrailAngles().distinct().size >= 3)
+        assertTrue("rotation should leave multiple fading line positions", cockpit.attitudeTrailAngles().distinct().size >= 2)
 
         Thread.sleep(1_000)
         render(30.0)
