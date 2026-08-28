@@ -70,8 +70,12 @@ Factory defaults: Left top Spotify, Left middle Navi/Maps, Left bottom Camera, R
 | Long-lived access token | Home Assistant user token; encrypted using Android Keystore. A blank field preserves an already saved token. |
 | Save connection | Validates/saves URL and nonblank replacement token, then queues sync. |
 | Sync now | Queues network-constrained WorkManager upload. |
+| Check HA now | Sends current diagnostics and logs, fetches the latest HA control revision, and processes a safe command if present. |
+| HA control + updates | Shows the HA notice, last applied revision, update version/URL/hash, and user-confirmed download action. |
 | S24 battery settings | Opens Android battery optimization settings for unrestricted operation. |
 | Privacy + data use | Shows collected data, destinations, security, and the full-policy link. |
+
+HA-returned automatic-recording values are clamped to the same accepted ranges shown above. Remote actions are limited to `sync` and `rearm`; arbitrary commands and silent application installation are not supported.
 
 ## Permissions
 

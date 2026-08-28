@@ -42,6 +42,7 @@ import ca.gmode.triprecorder.auto.HomeWifiReader
 import ca.gmode.triprecorder.data.AppDatabase
 import ca.gmode.triprecorder.data.RecordingRepository
 import ca.gmode.triprecorder.data.TripEntity
+import ca.gmode.triprecorder.diagnostics.AppLogStore
 import ca.gmode.triprecorder.export.TripExportFormat
 import ca.gmode.triprecorder.export.TripFileExporter
 import ca.gmode.triprecorder.settings.AutoRecordingConfig
@@ -59,6 +60,7 @@ import ca.gmode.triprecorder.settings.SideButtonSlot
 import ca.gmode.triprecorder.settings.SideButtonTarget
 import ca.gmode.triprecorder.sync.SyncScheduler
 import ca.gmode.triprecorder.sync.SyncStatusStore
+import ca.gmode.triprecorder.sync.RemoteControlStore
 import ca.gmode.triprecorder.tracking.DashboardTelemetry
 import ca.gmode.triprecorder.tracking.GaugeDisplayMath
 import ca.gmode.triprecorder.tracking.LevelCalibration
@@ -99,6 +101,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var repository: RecordingRepository
     private lateinit var secureSettings: SecureSettings
     private lateinit var syncStatus: SyncStatusStore
+    private lateinit var remoteControlStore: RemoteControlStore
     private lateinit var autoSettings: AutoRecordingSettings
     private lateinit var autoState: AutoRecordingStateStore
     private lateinit var autoManager: AutoRecordingManager
@@ -127,6 +130,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var recorderStatus: TextView
     private lateinit var telemetryStatus: TextView
     private lateinit var synchronizationStatus: TextView
+    private lateinit var remoteControlStatus: TextView
     private lateinit var gpsChip: TextView
     private lateinit var queueChip: TextView
     private lateinit var homeAssistantChip: TextView
@@ -227,6 +231,7 @@ class MainActivity : AppCompatActivity() {
         repository = RecordingRepository(AppDatabase.get(this).tripDao())
         secureSettings = SecureSettings(this)
         syncStatus = SyncStatusStore(this)
+        remoteControlStore = RemoteControlStore(this)
         autoSettings = AutoRecordingSettings(this)
         autoState = AutoRecordingStateStore(this)
         autoManager = AutoRecordingManager(this)
@@ -238,6 +243,8 @@ class MainActivity : AppCompatActivity() {
         calibrationSensors = SensorCollector(this)
         sideButtonSettings = SideButtonSettings(this)
         sideButtonConfig = sideButtonSettings.read()
+        SyncScheduler.ensurePeriodic(this)
+        AppLogStore(this).append("app", "started", "GMODE ${BuildConfig.VERSION_NAME} opened")
         palette = appearanceSettings.palette()
         dashboardConfig = dashboardSettings.read()
         calibrationSensors.onOrientationChanged = { orientation ->
@@ -857,7 +864,9 @@ class MainActivity : AppCompatActivity() {
         }
         val save = dashboardButton("SAVE CONNECTION", filled = true)
         val sync = dashboardButton("SYNC NOW", filled = false)
+        val haControl = dashboardButton("HA CONTROL + UPDATES", filled = false)
         synchronizationStatus = text("", 13f, MUTED)
+        remoteControlStatus = text("No HA control message received yet.", 12f, MUTED)
         val connectionBody = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             visibility = android.view.View.GONE
@@ -865,6 +874,8 @@ class MainActivity : AppCompatActivity() {
             addView(token.withBottom(dp(7)))
             addView(horizontalButtons(save, sync).withBottom(dp(7)))
             addView(synchronizationStatus)
+            addView(remoteControlStatus.withBottom(dp(7)))
+            addView(haControl)
         }
         val connectionToggle = dashboardButton("HOME ASSISTANT CONNECTION", filled = false)
         connectionToggle.setOnClickListener {
@@ -887,6 +898,7 @@ class MainActivity : AppCompatActivity() {
             SyncScheduler.enqueue(this)
             Toast.makeText(this, "Synchronization queued", Toast.LENGTH_SHORT).show()
         }
+        haControl.setOnClickListener { handleHaControl() }
         battery.setOnClickListener {
             startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
         }
@@ -1075,6 +1087,29 @@ class MainActivity : AppCompatActivity() {
                 onContinue()
             }
             .show()
+    }
+
+    private fun handleHaControl() {
+        val remote = remoteControlStore.read()
+        if (remote.updateAvailable(BuildConfig.VERSION_NAME)) {
+            MaterialAlertDialogBuilder(this)
+                .setTitle("GMODE ${remote.latestVersion} available")
+                .setMessage(
+                    buildString {
+                        if (remote.notice.isNotBlank()) append(remote.notice).append("\n\n")
+                        append("Home Assistant supplied this download address.")
+                        if (remote.sha256.isNotBlank()) append("\n\nSHA-256: ${remote.sha256}")
+                    },
+                )
+                .setNegativeButton("CANCEL", null)
+                .setPositiveButton("OPEN DOWNLOAD") { _, _ ->
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(remote.downloadUrl)))
+                }
+                .show()
+        } else {
+            SyncScheduler.enqueue(this)
+            Toast.makeText(this, "Checking Home Assistant control and updates", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun showPrivacyAndDataDialog() {
@@ -1303,6 +1338,15 @@ class MainActivity : AppCompatActivity() {
                 if (::synchronizationStatus.isInitialized) synchronizationStatus.text = buildString {
                     append(sync.state)
                     if (sync.message.isNotBlank()) append(" — ${sync.message}")
+                }
+                val remote = remoteControlStore.read()
+                if (::remoteControlStatus.isInitialized) remoteControlStatus.text = buildString {
+                    if (remote.notice.isNotBlank()) append(remote.notice) else append("HA control revision ${remote.revision}")
+                    if (remote.updateAvailable(BuildConfig.VERSION_NAME)) {
+                        append("\nGMODE ${remote.latestVersion} is available — tap HA CONTROL + UPDATES")
+                    } else if (remote.updatedAt.isNotBlank()) {
+                        append("\nLast control check: ${remote.updatedAt}")
+                    }
                 }
                 if (::queueChip.isInitialized) setChip(queueChip, "$pending PENDING", pending == 0)
                 val configured = secureSettings.baseUrl.isNotBlank() && secureSettings.hasToken()

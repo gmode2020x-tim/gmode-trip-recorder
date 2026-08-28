@@ -10,6 +10,7 @@ import ca.gmode.triprecorder.data.AppDatabase
 import ca.gmode.triprecorder.data.PointEntity
 import ca.gmode.triprecorder.data.TripEntity
 import ca.gmode.triprecorder.settings.SecureSettings
+import ca.gmode.triprecorder.settings.AutoRecordingSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -55,6 +56,9 @@ class UploadWorkerInstrumentedTest {
         server = MockWebServer().apply {
             dispatcher = object : Dispatcher() {
                 override fun dispatch(request: RecordedRequest): MockResponse {
+                    if (request.path == "/api/gmode_trip_recorder/mobile/diagnostics") {
+                        return diagnosticResponse()
+                    }
                     val payload = JSONObject(request.body.readUtf8())
                     val points = payload.getJSONArray("points")
                     val ids = (0 until points.length()).map { points.getJSONObject(it).getString("pointId") }
@@ -112,6 +116,57 @@ class UploadWorkerInstrumentedTest {
         assertTrue(SyncStatusStore(context).read().state.contains("connection", ignoreCase = true))
     }
 
+    @Test
+    fun emptyTripQueueStillSendsDiagnosticHeartbeat() = runBlocking {
+        val diagnosticBodies = mutableListOf<JSONObject>()
+        server = MockWebServer().apply {
+            dispatcher = object : Dispatcher() {
+                override fun dispatch(request: RecordedRequest): MockResponse {
+                    diagnosticBodies += JSONObject(request.body.readUtf8())
+                    return diagnosticResponse()
+                }
+            }
+            start()
+        }
+        settings.baseUrl = server!!.url("/").toString()
+
+        val result = runWorker()
+
+        assertResultType(ListenableWorker.Result.success(), result)
+        assertEquals(2, diagnosticBodies.size)
+        assertEquals("2.1.0", diagnosticBodies.last().getString("appVersion"))
+        assertTrue(diagnosticBodies.last().has("snapshot"))
+        assertTrue(diagnosticBodies.last().has("logs"))
+    }
+
+    @Test
+    fun haControlAppliesBoundedRecordingSettings() = runBlocking {
+        val control = JSONObject()
+            .put("revision", 99)
+            .put("notice", "Comparison logging enabled")
+            .put(
+                "settings",
+                JSONObject()
+                    .put("locationIntervalSeconds", 3)
+                    .put("minimumDistanceMeters", 2),
+            )
+        server = MockWebServer().apply {
+            dispatcher = object : Dispatcher() {
+                override fun dispatch(request: RecordedRequest): MockResponse = diagnosticResponse(control)
+            }
+            start()
+        }
+        settings.baseUrl = server!!.url("/").toString()
+
+        val result = runWorker()
+
+        assertResultType(ListenableWorker.Result.success(), result)
+        val applied = AutoRecordingSettings(context).read()
+        assertEquals(3, applied.locationIntervalSeconds)
+        assertEquals(2, applied.minimumDistanceMeters)
+        assertEquals(99, RemoteControlStore(context).read().lastAppliedRevision)
+    }
+
     private suspend fun seedTrip(pointCount: Int) {
         val dao = database.tripDao()
         val trip = TripEntity(
@@ -159,6 +214,19 @@ class UploadWorkerInstrumentedTest {
     private fun assertResultType(expected: ListenableWorker.Result, actual: ListenableWorker.Result) {
         assertEquals(expected.javaClass, actual.javaClass)
     }
+
+    private fun diagnosticResponse(control: JSONObject = JSONObject().put("revision", 0)): MockResponse =
+        MockResponse()
+            .setResponseCode(200)
+            .setHeader("Content-Type", "application/json")
+            .setBody(
+                JSONObject()
+                    .put("status", "ok")
+                    .put("updatedAt", "2026-08-28T19:00:00Z")
+                    .put("acceptedLogIds", JSONArray())
+                    .put("control", control)
+                    .toString(),
+            )
 
     companion object {
         private const val TOKEN = "gmode-stress-token"

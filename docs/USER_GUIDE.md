@@ -87,6 +87,8 @@ Open **Export recorded trip**, select a saved/active trip and a format, then pre
 
 Open **System > Home Assistant connection**, enter the URL and a long-lived access token, and press **Save connection**. Use **Sync now** to queue immediate work. See [Home Assistant setup](HOME_ASSISTANT_SETUP.md) for the server component and troubleshooting.
 
+The **HA control + updates** card lets you request an immediate check and displays the most recent HA notice, applied control revision, and available version. The phone reports sync/GPS/permission/battery health and a bounded recent event log to your own HA server every 15 minutes when online and during normal sync activity. HA can return notices, safe `sync`/`rearm` commands, bounded automatic-recording settings, and update metadata. Update downloads always require your confirmation; HA cannot silently install software or run arbitrary code on the phone.
+
 ## Privacy and deletion
 
 Use **System > Privacy + data use** to read the in-app summary or open the full policy. To remove all phone-held trips and settings, use Android **Settings > Apps > GMODE Trip Recorder > Storage > Clear data**, or uninstall. Delete synchronized/exported copies separately.

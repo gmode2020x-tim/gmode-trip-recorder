@@ -1,6 +1,7 @@
 package ca.gmode.triprecorder.tracking
 
 import android.content.Context
+import ca.gmode.triprecorder.diagnostics.AppLogStore
 
 data class TrackingDiagnostic(
     val status: String = "GPS standby",
@@ -11,6 +12,7 @@ data class TrackingDiagnostic(
 
 class TrackingDiagnosticStore(context: Context) {
     private val preferences = context.applicationContext.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+    private val appLog = AppLogStore(context)
 
     fun read(): TrackingDiagnostic = TrackingDiagnostic(
         status = preferences.getString(KEY_STATUS, "GPS standby") ?: "GPS standby",
@@ -20,11 +22,15 @@ class TrackingDiagnosticStore(context: Context) {
     )
 
     fun updateStatus(message: String, retryCount: Int = read().retryCount) {
+        val previous = read()
         preferences.edit()
             .putString(KEY_STATUS, message.take(240))
             .putLong(KEY_UPDATED_AT, System.currentTimeMillis())
             .putInt(KEY_RETRY_COUNT, retryCount.coerceAtLeast(0))
             .apply()
+        if (previous.status != message || previous.retryCount != retryCount) {
+            appLog.append("gps", "retry", message)
+        }
     }
 
     fun markFix(accuracyMeters: Float?) {
@@ -38,12 +44,14 @@ class TrackingDiagnosticStore(context: Context) {
     }
 
     fun reset(message: String) {
+        val previous = read()
         preferences.edit()
             .putString(KEY_STATUS, message.take(240))
             .putLong(KEY_UPDATED_AT, System.currentTimeMillis())
             .remove(KEY_LAST_FIX_AT)
             .putInt(KEY_RETRY_COUNT, 0)
             .apply()
+        if (previous.status != message) appLog.append("gps", "starting", message)
     }
 
     private companion object {

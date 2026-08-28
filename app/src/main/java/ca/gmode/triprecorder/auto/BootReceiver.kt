@@ -3,10 +3,12 @@ package ca.gmode.triprecorder.auto
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import ca.gmode.triprecorder.sync.SyncScheduler
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action !in SUPPORTED_ACTIONS) return
+        SyncScheduler.ensurePeriodic(context)
         val pendingResult = goAsync()
         AutoRecordingManager(context).refreshRegistration { _, _ -> pendingResult.finish() }
     }

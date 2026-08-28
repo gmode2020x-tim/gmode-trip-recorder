@@ -6,12 +6,12 @@ The v2 cockpit combines a scene-matched procedural 3D vehicle, live pitch and ro
 
 ![GMODE cockpit](play-store/screenshots/01-attitude-dashboard.png)
 
-## Download version 2.0.1
+## Download version 2.1.0
 
-- **Recommended phone package:** [GMODE-Trip-Recorder-v2.0.1-install.zip](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.0.1/GMODE-Trip-Recorder-v2.0.1-install.zip)
-- **APK only:** [GMODE-Trip-Recorder-v2.0.1-sideload.apk](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.0.1/GMODE-Trip-Recorder-v2.0.1-sideload.apk)
-- **Checksums:** [GMODE-Trip-Recorder-v2.0.1-SHA256SUMS.txt](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.0.1/GMODE-Trip-Recorder-v2.0.1-SHA256SUMS.txt)
-- **Release page:** [GMODE Trip Recorder v2.0.1](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/tag/v2.0.1)
+- **Recommended phone package:** [GMODE-Trip-Recorder-v2.1.0-install.zip](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.0/GMODE-Trip-Recorder-v2.1.0-install.zip)
+- **APK only:** [GMODE-Trip-Recorder-v2.1.0-sideload.apk](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.0/GMODE-Trip-Recorder-v2.1.0-sideload.apk)
+- **Checksums:** [GMODE-Trip-Recorder-v2.1.0-SHA256SUMS.txt](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.0/GMODE-Trip-Recorder-v2.1.0-SHA256SUMS.txt)
+- **Release page:** [GMODE Trip Recorder v2.1.0](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/tag/v2.1.0)
 
 The ZIP contains the sideload APK, checksum file, this installation guide, and the screenshots used below. The Play `.aab` on the release page is for Google Play Console and cannot be installed directly on a phone.
 
@@ -27,6 +27,7 @@ The ZIP contains the sideload APK, checksum file, this installation guide, and t
 - Stationary pitch/roll zero calibration and adjustable caution/limit thresholds.
 - GPX, KML, GeoJSON, and full-telemetry CSV export through Android's document picker.
 - Durable Home Assistant uploads in idempotent 500-point batches with network-constrained retry.
+- Fifteen-minute and event-driven diagnostic heartbeats, retained app logs, and authenticated HA-to-phone notices, bounded settings, update metadata, and safe sync/re-arm commands.
 - No advertising, analytics, account system, or GMODE cloud service.
 
 ## Documentation
@@ -47,16 +48,16 @@ The ZIP contains the sideload APK, checksum file, this installation guide, and t
 
 The GitHub release has two deliberately different artifacts:
 
-- `GMODE-Trip-Recorder-v2.0.1-sideload.apk` is signed with the existing sideload/debug lineage so it can update the previous GitHub APK without erasing local trips or settings.
-- `GMODE-Trip-Recorder-v2.0.1-play.aab` is signed with the private upload key and is intended only for Google Play Console. Google Play App Signing supplies the distribution signature. Do not try to open the AAB on the phone.
+- `GMODE-Trip-Recorder-v2.1.0-sideload.apk` is signed with the existing sideload/debug lineage so it can update the previous GitHub APK without erasing local trips or settings.
+- `GMODE-Trip-Recorder-v2.1.0-play.aab` is signed with the private upload key and is intended only for Google Play Console. Google Play App Signing supplies the distribution signature. Do not try to open the AAB on the phone.
 
 ### 1. Download and extract
 
 1. Open the **recommended phone package** link above in Chrome or Samsung Internet.
-2. If GitHub shows the release page, expand **Assets** and tap `GMODE-Trip-Recorder-v2.0.1-install.zip`.
+2. If GitHub shows the release page, expand **Assets** and tap `GMODE-Trip-Recorder-v2.1.0-install.zip`.
 3. When the download finishes, open Samsung **My Files > Downloads**.
 4. Tap the ZIP, choose **Extract**, then open the extracted folder.
-5. Tap `GMODE-Trip-Recorder-v2.0.1-sideload.apk`.
+5. Tap `GMODE-Trip-Recorder-v2.1.0-sideload.apk`.
 
 You can skip extraction by downloading the **APK only** link instead.
 
@@ -77,7 +78,7 @@ The same control is available under **Settings > Security and privacy > More sec
 3. Do **not** uninstall the old version first unless you intentionally want to erase app-private trips and settings.
 4. When Android reports **App installed**, tap **Open**.
 
-If Android reports that the package conflicts with an existing app, the installed copy was signed by a different key. Export any required trips, uninstall that incompatible copy, and then install v2.0.1.
+If Android reports that the package conflicts with an existing app, the installed copy was signed by a different key. Export any required trips, uninstall that incompatible copy, and then install v2.1.0.
 
 ### 4. Complete first-run permissions
 
@@ -125,13 +126,13 @@ The six side buttons can be assigned after installation:
 The published SHA-256 file lets you confirm that the download is complete and unchanged. On Windows PowerShell:
 
 ```powershell
-Get-FileHash .\GMODE-Trip-Recorder-v2.0.1-sideload.apk -Algorithm SHA256
+Get-FileHash .\GMODE-Trip-Recorder-v2.1.0-sideload.apk -Algorithm SHA256
 ```
 
 The APK must equal:
 
 ```text
-158a742cb609282daff82be7a367f631743672655d22ce8918e647e3432a9dab
+44fde27dce675d06e410d4878696e64a49bdbc18da68dd551132fa3f6a1eddb2
 ```
 
 ### Installation troubleshooting
@@ -181,6 +182,8 @@ Never commit `keystore.properties`, a `.jks` file, a Home Assistant token, or ge
 ## Home Assistant upload contract
 
 `UploadWorker` sends `POST /api/gmode_trip_recorder/mobile/upload` with the user's bearer token. Each request contains one trip and up to 500 points. The integration returns acknowledged point IDs; the phone marks only those IDs synchronized. Stable IDs make retries safe. Local rows are retained after upload so the phone remains a complete export source.
+
+The same worker exchanges a diagnostic heartbeat at `POST /api/gmode_trip_recorder/mobile/diagnostics` on every manual sync, trip upload, app start/re-arm sequence, and at least every 15 minutes when the network is available. Home Assistant stores the latest phone health and up to 100 deduplicated events, then returns revisioned control data. Control is limited to an in-app notice, update URL/hash, bounded automatic-recording settings, and the safe `sync` or `rearm` commands; Android does not silently install APKs or execute arbitrary HA code.
 
 ## Supported Android versions
 

@@ -1,6 +1,7 @@
 package ca.gmode.triprecorder.settings
 
 import android.content.Context
+import ca.gmode.triprecorder.diagnostics.AppLogStore
 
 data class AutoRecordingConfig(
     val enabled: Boolean = false,
@@ -105,6 +106,7 @@ class AutoRecordingSettings(context: Context) {
 
 class AutoRecordingStateStore(context: Context) {
     private val preferences = context.applicationContext.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+    private val appLog = AppLogStore(context)
 
     var activeAutoTripId: String?
         get() = preferences.getString(KEY_ACTIVE_TRIP_ID, null)
@@ -118,7 +120,9 @@ class AutoRecordingStateStore(context: Context) {
         ?: "Automatic recording is off"
 
     fun updateStatus(message: String) {
+        val previous = status()
         preferences.edit().putString(KEY_STATUS, message.take(240)).apply()
+        if (previous != message) appLog.append("automatic", "status", message)
     }
 
     private companion object {

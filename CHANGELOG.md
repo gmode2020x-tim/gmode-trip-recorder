@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.0 - 2026-08-28
+
+- Added an authenticated diagnostic heartbeat on every manual, trip, and periodic sync, including when no trip data is pending.
+- Added a bounded on-device event log for sync, GPS recovery, automatic recording, app starts, and HA commands.
+- Added HA-to-app control responses for notices, update metadata, recording settings, and safe sync/re-arm commands.
+- Added a 15-minute network-aware diagnostic heartbeat and boot/update scheduling.
+- Added an in-app HA Control + Updates panel with update notices, release links, and SHA-256 display.
+- Added Home Assistant mobile status, log, and control entities plus services for setting control data and clearing logs.
+
 ## 2.0.1 - 2026-08-28
 
 - Fixed automatic departure recording so a missing or uncertain first GPS fix retries instead of silently ending the check.
