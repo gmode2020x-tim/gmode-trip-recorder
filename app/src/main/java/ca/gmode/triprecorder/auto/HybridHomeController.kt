@@ -23,7 +23,7 @@ class HybridHomeController(
         return tripController.handleExit()
     }
 
-    fun handleGeofenceEnter() {
+    suspend fun handleGeofenceEnter() {
         WifiDepartureWorker.cancel(appContext)
         tripController.handleEnter()
     }

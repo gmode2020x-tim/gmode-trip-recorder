@@ -27,6 +27,7 @@ import ca.gmode.triprecorder.auto.ReturnDwellWorker
 import ca.gmode.triprecorder.data.AppDatabase
 import ca.gmode.triprecorder.data.PhoneSnapshot
 import ca.gmode.triprecorder.data.RecordingRepository
+import ca.gmode.triprecorder.diagnostics.AppLogStore
 import ca.gmode.triprecorder.settings.AutoRecordingSettings
 import ca.gmode.triprecorder.settings.AutoRecordingStateStore
 import ca.gmode.triprecorder.sync.SyncScheduler
@@ -52,6 +53,7 @@ class TrackingService : LifecycleService() {
     private var locationRequest: LocationRequest? = null
     private var lastFixElapsedRealtimeMs: Long? = null
     private var gpsRetryCount = 0
+    private var initialized = false
     private val mainHandler = Handler(Looper.getMainLooper())
     private val gpsWatchdog = Runnable { checkGpsHealth() }
 
@@ -76,6 +78,15 @@ class TrackingService : LifecycleService() {
 
     override fun onCreate() {
         super.onCreate()
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            AppLogStore(this).append(
+                "gps",
+                "permission_missing",
+                "Recording service restart was cancelled because precise location permission is missing",
+            )
+            stopSelf()
+            return
+        }
         createNotificationChannel()
         startForeground(
             NOTIFICATION_ID,
@@ -88,10 +99,15 @@ class TrackingService : LifecycleService() {
         locationManager = getSystemService(LocationManager::class.java)
         liveTelemetry = LiveTelemetryStore(this)
         diagnostics = TrackingDiagnosticStore(this)
+        initialized = true
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+        if (!initialized) {
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
         when (intent?.action) {
             ACTION_START -> beginTracking(intent.getStringExtra(EXTRA_TRIP_ID))
             ACTION_STOP -> stopTripAndService()
@@ -226,6 +242,10 @@ class TrackingService : LifecycleService() {
                     state.activeAutoTripId = null
                     ReturnDwellWorker.cancel(this@TrackingService)
                     state.updateStatus("Automatic trip stopped manually — waiting for the next departure")
+                } else if (state.returnDwellTripId == stoppedTripId) {
+                    state.clearReturnDwell()
+                    ReturnDwellWorker.cancel(this@TrackingService)
+                    state.updateStatus("Manual trip stopped — waiting for the next departure")
                 }
             }
             SyncScheduler.enqueue(this@TrackingService)

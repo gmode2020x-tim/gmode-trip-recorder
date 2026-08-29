@@ -5,14 +5,14 @@ This document separates completed repository work from manual Play Console actio
 ## Build and signing
 
 - [x] Package: `ca.gmode.triprecorder`
-- [x] Version name/code: `2.1.5` / `20105`
+- [x] Version name/code: `2.1.7` / `20107`
 - [x] Minimum SDK: 29 (Android 10)
 - [x] Compile/target SDK: 36 (Android 16)
 - [x] Release minification and resource shrinking enabled
 - [x] Dedicated ignored upload-keystore support
 - [x] Public upload certificate exported as `play-store/gmode-upload-certificate.pem`
 - [ ] In Play Console, enroll in mandatory Play App Signing and register the upload certificate
-- [ ] Upload `GMODE-Trip-Recorder-v2.1.5-play.aab` to an internal test track first
+- [ ] Upload `GMODE-Trip-Recorder-v2.1.7-play.aab` to an internal test track first
 
 The GitHub sideload APK intentionally has the previous debug signature for in-place v1 upgrades. Never upload the sideload APK to Play.
 
@@ -51,7 +51,7 @@ Review these answers against the exact current Play Console wording before submi
 
 Core feature wording:
 
-> GMODE Trip Recorder uses background precise location only when the user enables automatic trip recording. It detects departure from and return to the saved home area and records the route while the app is closed or not in use. Automatic recording is disabled by default and can be turned off in app settings.
+> GMODE Trip Recorder uses background precise location only when the user enables automatic trip recording or the separate manual-trip home-stop option. It detects departure from and return to the user-saved home area and records the route while the app is closed or not in use. Both features are disabled by default and can be turned off in app settings.
 
 Google recommends a video of 30 seconds or less. It must show:
 
@@ -82,12 +82,12 @@ Google announced a separate minimum-scope declaration for `ACCESS_FINE_LOCATION`
 
 1. Internal test: install from Play, verify clean install, permissions, manual trip, background departure, export, and HA sync.
 2. Closed test if required by the account: meet Google's current tester/duration rules shown in Play Console.
-3. Production: use staged rollout, monitor Android vitals, and retain v2.1.5 artifacts/checksums.
+3. Production: use staged rollout, monitor Android vitals, and retain v2.1.7 artifacts/checksums.
 
 ## Reviewer notes draft
 
-GMODE Trip Recorder works without login. Press START for a manual trip. Background location is used only by the optional START WHEN I LEAVE HOME feature under Settings > Automatic recording. The feature requires a saved current location and Android Allow all the time permission. Home Assistant sync is optional and cannot be tested without a reviewer-owned server/token; recording and all local dashboard/export functions remain usable without it.
+GMODE Trip Recorder works without login. Press START for a manual trip. Background location is used only by the optional START WHEN I LEAVE HOME and STOP MANUAL TRIPS AT HOME features under Settings. These features require a saved current location and Android Allow all the time permission. Home Assistant sync is optional and cannot be tested without a reviewer-owned server/token; recording and all local dashboard/export functions remain usable without it.
 
 ## Release notes
 
-Automatic return-home trips now retain their original stop deadline across app resumes and geofence re-registration, stop through an independent scheduled check, and keep sync diagnostics readable by coalescing routine success events while preserving failures and recoveries.
+Stationary trimming now removes configurable long-stop clusters from summaries and exports without deleting raw points, preserves separate route legs, and optionally stops manually started trips after the configured return-home dwell.

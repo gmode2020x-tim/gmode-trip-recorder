@@ -64,6 +64,16 @@ Automatic recording is off by default.
 
 Hybrid mode uses Wi-Fi departure as an early signal and GPS as the physical boundary check. Loss of Wi-Fi by itself does not start a trip while the GPS fix remains inside the home radius. A GPS exit can still start a trip when Wi-Fi is unavailable. Return dwell avoids stopping during a brief pass near home. Android will not deliver background events after the user force-stops the app; open it once to re-arm.
 
+## Trim stationary time
+
+Open **Settings > Stationary trimming**. The recommended defaults are enabled, 150 m stop radius, 5.4 km/h stationary speed, pause after three minutes, and split after 15 minutes.
+
+![Stationary trimming settings](../screenshots/GMODE-v2.1.7-stationary-trimming-settings.png)
+
+GMODE never deletes source fixes. It derives moving statistics and route legs from the raw track. A short confirmed stop pauses elapsed driving time and removes GPS drift from distance. A stop longer than the split delay begins a new route leg when movement resumes. Disable trimming when you specifically need one raw timeline.
+
+Enable **Stop manual trips at home** if trips started with **START** should also finish after remaining inside the saved home zone for the configured return delay. This option requires the same saved home point and Android background-location permission as automatic recording.
+
 ## Scene and vehicle mapping
 
 | Trip/scene | 3D vehicle | Gauge background |
@@ -80,12 +90,12 @@ Park on flat ground, stop completely, and leave the S24 in its normal mount. Ope
 
 ## Export a trip
 
-Open **Export recorded trip**, select a saved/active trip and a format, then press **Export trip file**. Android's Save dialog chooses the destination.
+Open **Export recorded trip**, select a saved/active trip and a format, then press **Export trip file**. Android's Save dialog chooses the destination. When stationary trimming is enabled, exports contain the derived moving legs; the local database and Home Assistant upload still retain all raw points.
 
 - **GPX:** route, elevation, timestamps, accuracy, speed, bearing, and satellites for navigation/trail apps.
 - **KML:** timestamped track for Google Earth.
-- **GeoJSON:** LineString plus trip metadata and arrays for GIS/map tools.
-- **CSV:** every recorded telemetry column for a spreadsheet or analysis tool.
+- **GeoJSON:** MultiLineString plus trip metadata and arrays for GIS/map tools.
+- **CSV:** every retained moving-point telemetry column plus route-segment index for a spreadsheet or analysis tool.
 
 ## Home Assistant
 

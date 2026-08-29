@@ -16,6 +16,10 @@ For a private IPv4, local hostname, `.local`, loopback, link-local, CGNAT, or un
 
 `AutoRecordingManager` combines an Android home geofence with `HomeWifiReader`/network callbacks. Wi-Fi departure begins the configurable confirmation window; GPS distance plus reported uncertainty prevents a router outage inside the home zone from starting a trip. Boot and package-replaced receivers restore a previously enabled configuration. Automatic recording is user-controlled and disabled by default.
 
+`StationaryTripTrimmer` is a deterministic, non-destructive post-processor. It finds low-speed spatial clusters, removes their dwell time and GPS drift from derived statistics, and creates separate geometry segments after the configured split delay. Room retains the original points. The same settings travel with the mobile upload so Home Assistant reproduces the metrics without changing the version-1 upload contract.
+
+The return-dwell state records the exact trip ID being watched. This permits the persisted worker to stop either an automatically started trip or, with explicit user opt-in, a manual trip after returning home.
+
 ## Security boundaries
 
 - Room, normal preferences, home location/SSID, and synchronization status are app-private.

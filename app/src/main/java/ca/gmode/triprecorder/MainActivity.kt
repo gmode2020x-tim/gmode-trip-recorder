@@ -69,6 +69,7 @@ import ca.gmode.triprecorder.tracking.LevelCalibration
 import ca.gmode.triprecorder.tracking.LiveTelemetry
 import ca.gmode.triprecorder.tracking.LiveTelemetryStore
 import ca.gmode.triprecorder.tracking.SensorCollector
+import ca.gmode.triprecorder.tracking.StationaryTripTrimmer
 import ca.gmode.triprecorder.tracking.TrackingDiagnosticStore
 import ca.gmode.triprecorder.tracking.TrackingService
 import com.google.android.material.button.MaterialButton
@@ -153,6 +154,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var locationIntervalInput: EditText
     private lateinit var minimumDistanceInput: EditText
     private lateinit var autoTripType: Spinner
+    private lateinit var stationaryTrimSwitch: MaterialSwitch
+    private lateinit var stopManualAtHomeSwitch: MaterialSwitch
+    private lateinit var stationaryRadiusInput: EditText
+    private lateinit var stationaryPauseInput: EditText
+    private lateinit var stationarySplitInput: EditText
+    private lateinit var stationarySpeedInput: EditText
     private lateinit var themeSpinner: Spinner
     private lateinit var customAccentInput: EditText
     private var pendingHomeLatitude: Double? = null
@@ -203,13 +210,17 @@ class MainActivity : AppCompatActivity() {
             runCatching {
                 val trip = repository.trip(tripId) ?: error("The selected trip is no longer available")
                 val points = repository.tripPoints(tripId)
-                val document = withContext(Dispatchers.Default) { TripFileExporter.render(trip, points, format) }
+                val trimConfig = autoSettings.read()
+                val trim = withContext(Dispatchers.Default) { StationaryTripTrimmer.trim(points, trimConfig) }
+                val document = withContext(Dispatchers.Default) {
+                    TripFileExporter.render(trip, points, format, trimConfig)
+                }
                 withContext(Dispatchers.IO) {
                     val stream = contentResolver.openOutputStream(destination, "w")
                         ?: error("Android could not open the selected file")
                     stream.bufferedWriter(Charsets.UTF_8).use { it.write(document) }
                 }
-                points.size
+                trim.points.size
             }.onSuccess { pointCount ->
                 Toast.makeText(
                     this@MainActivity,
@@ -670,6 +681,30 @@ class MainActivity : AppCompatActivity() {
         returnDwellInput = numberInput(automaticConfig.returnDwellMinutes)
         locationIntervalInput = numberInput(automaticConfig.locationIntervalSeconds)
         minimumDistanceInput = numberInput(automaticConfig.minimumDistanceMeters)
+        stationaryTrimSwitch = MaterialSwitch(this).apply {
+            text = "TRIM STATIONARY TIME"
+            textSize = 14f
+            setTextColor(Color.WHITE)
+            isChecked = automaticConfig.stationaryTrimEnabled
+            thumbTintList = checkedStateList(ORANGE, Color.parseColor("#777777"))
+            trackTintList = checkedStateList(palette.activeSurface, Color.parseColor("#333333"))
+        }
+        stopManualAtHomeSwitch = MaterialSwitch(this).apply {
+            text = "STOP MANUAL TRIPS AT HOME"
+            textSize = 14f
+            setTextColor(Color.WHITE)
+            isChecked = automaticConfig.stopManualTripsAtHome
+            thumbTintList = checkedStateList(ORANGE, Color.parseColor("#777777"))
+            trackTintList = checkedStateList(palette.activeSurface, Color.parseColor("#333333"))
+        }
+        stationaryRadiusInput = numberInput(automaticConfig.stationaryRadiusMeters)
+        stationaryPauseInput = numberInput(automaticConfig.stationaryPauseMinutes)
+        stationarySplitInput = numberInput(automaticConfig.stationarySplitMinutes)
+        stationarySpeedInput = editText("5.4").apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setText(automaticConfig.stationarySpeedKmh.toString())
+            maxLines = 1
+        }
         autoTripType = Spinner(this).apply {
             adapter = tripTypeAdapter()
             backgroundTintList = ColorStateList.valueOf(ORANGE)
@@ -679,6 +714,7 @@ class MainActivity : AppCompatActivity() {
         val useCurrentWifi = dashboardButton("USE CURRENT WI-FI", filled = false)
         val chooseWifi = dashboardButton("CHOOSE WI-FI IN ANDROID", filled = false)
         val saveAutomatic = dashboardButton("SAVE AUTO SETTINGS", filled = true)
+        val saveTrimming = dashboardButton("SAVE TRIMMING SETTINGS", filled = true)
         val locationPermission = dashboardButton("LOCATION PERMISSION", filled = false)
         content.addView(
             card(
@@ -705,7 +741,28 @@ class MainActivity : AppCompatActivity() {
                 horizontalButtons(saveAutomatic, locationPermission),
                 autoPermissionStatus,
                 text(
-                    "Hybrid mode uses both signals: leaving home Wi-Fi starts the confirmation timer, and GPS must also place the phone outside the home radius before a trip starts. GPS remains active if Wi-Fi status is unavailable. Returning inside the GPS zone for the return delay stops only an automatically started trip.",
+                    "Hybrid mode uses both signals: leaving home Wi-Fi starts the confirmation timer, and GPS must also place the phone outside the home radius before a trip starts. GPS remains active if Wi-Fi status is unavailable.",
+                    11f,
+                    MUTED,
+                ),
+            ),
+        )
+        content.addView(
+            card(
+                "STATIONARY TRIMMING",
+                stationaryTrimSwitch,
+                stopManualAtHomeSwitch,
+                horizontalViews(
+                    labeledInput("STOP RADIUS (M)", stationaryRadiusInput),
+                    labeledInput("STATIONARY SPEED (KM/H)", stationarySpeedInput),
+                ),
+                horizontalViews(
+                    labeledInput("PAUSE AFTER (MIN)", stationaryPauseInput),
+                    labeledInput("SPLIT AFTER (MIN)", stationarySplitInput),
+                ),
+                saveTrimming,
+                text(
+                    "Raw GPS points are always retained. Trip statistics and exports omit stationary periods; stops longer than the split delay become separate route legs. Manual home stopping uses the home radius and return delay above.",
                     11f,
                     MUTED,
                 ),
@@ -934,6 +991,7 @@ class MainActivity : AppCompatActivity() {
             wifiPanelLauncher.launch(Intent(Settings.Panel.ACTION_WIFI))
         }
         saveAutomatic.setOnClickListener { saveAutoSettings() }
+        saveTrimming.setOnClickListener { saveAutoSettings() }
         locationPermission.setOnClickListener { openAppLocationSettings() }
         saveTheme.setOnClickListener { saveAppearance(usePresetAccent = false) }
         usePresetColor.setOnClickListener { saveAppearance(usePresetAccent = true) }
@@ -1169,13 +1227,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveAutoSettings() {
-        if (autoEnabledSwitch.isChecked && !hasFineLocation()) {
+        val homeDetectionRequested = autoEnabledSwitch.isChecked || stopManualAtHomeSwitch.isChecked
+        if (homeDetectionRequested && !hasFineLocation()) {
             saveAutoAfterPermission = true
             requestForegroundLocationPermissions()
             return
         }
-        if (autoEnabledSwitch.isChecked && (pendingHomeLatitude == null || pendingHomeLongitude == null)) {
-            Toast.makeText(this, "Use current location before enabling automatic recording", Toast.LENGTH_LONG).show()
+        if (homeDetectionRequested && (pendingHomeLatitude == null || pendingHomeLongitude == null)) {
+            Toast.makeText(this, "Use current location before enabling home trip detection", Toast.LENGTH_LONG).show()
             return
         }
         val config = AutoRecordingConfig(
@@ -1191,11 +1250,24 @@ class MainActivity : AppCompatActivity() {
             locationIntervalSeconds = locationIntervalInput.intValue(AutoRecordingConfig.DEFAULT_LOCATION_INTERVAL_SECONDS),
             minimumDistanceMeters = minimumDistanceInput.intValue(AutoRecordingConfig.DEFAULT_MINIMUM_DISTANCE_METERS),
             tripType = TRIP_TYPE_VALUES[autoTripType.selectedItemPosition],
+            stationaryTrimEnabled = stationaryTrimSwitch.isChecked,
+            stationaryRadiusMeters = stationaryRadiusInput.intValue(
+                AutoRecordingConfig.DEFAULT_STATIONARY_RADIUS_METERS,
+            ),
+            stationaryPauseMinutes = stationaryPauseInput.intValue(
+                AutoRecordingConfig.DEFAULT_STATIONARY_PAUSE_MINUTES,
+            ),
+            stationarySplitMinutes = stationarySplitInput.intValue(
+                AutoRecordingConfig.DEFAULT_STATIONARY_SPLIT_MINUTES,
+            ),
+            stationarySpeedKmh = stationarySpeedInput.text.toString().toDoubleOrNull()
+                ?: AutoRecordingConfig.DEFAULT_STATIONARY_SPEED_KMH,
+            stopManualTripsAtHome = stopManualAtHomeSwitch.isChecked,
         ).normalized()
         autoSettings.save(config)
         populateAutoInputs(config)
         homeWifiStatus.text = homeWifiLabel(config.homeWifiSsid)
-        if (config.enabled && !autoManager.hasBackgroundLocation()) {
+        if ((config.enabled || config.stopManualTripsAtHome) && !autoManager.hasBackgroundLocation()) {
             autoState.updateStatus("Saved — choose Allow all the time for automatic departures")
             refreshAutoUi()
             Toast.makeText(this, "In Permissions > Location, choose Allow all the time", Toast.LENGTH_LONG).show()
@@ -1226,9 +1298,11 @@ class MainActivity : AppCompatActivity() {
         autoStatus.text = autoState.status()
         homeWifiStatus.text = homeWifiLabel(config.homeWifiSsid)
         autoPermissionStatus.text = when {
-            !config.enabled -> "Optional — automatic recording is disabled"
+            !config.enabled && !(config.stopManualTripsAtHome && config.hasHomeLocation) ->
+                "Optional — automatic recording and manual home stopping are disabled"
             !autoManager.hasFineLocation() -> "Precise location permission is required"
             !autoManager.hasBackgroundLocation() -> "Not armed — set Location to Allow all the time"
+            !config.enabled -> "Location access is ready to stop manual trips at home"
             else -> "Location access is ready for automatic departures"
         }
     }
@@ -1240,6 +1314,12 @@ class MainActivity : AppCompatActivity() {
         returnDwellInput.setText(config.returnDwellMinutes.toString())
         locationIntervalInput.setText(config.locationIntervalSeconds.toString())
         minimumDistanceInput.setText(config.minimumDistanceMeters.toString())
+        stationaryTrimSwitch.isChecked = config.stationaryTrimEnabled
+        stopManualAtHomeSwitch.isChecked = config.stopManualTripsAtHome
+        stationaryRadiusInput.setText(config.stationaryRadiusMeters.toString())
+        stationaryPauseInput.setText(config.stationaryPauseMinutes.toString())
+        stationarySplitInput.setText(config.stationarySplitMinutes.toString())
+        stationarySpeedInput.setText(config.stationarySpeedKmh.toString())
     }
 
     private fun homeLocationLabel(accuracyMeters: Float? = null): String {

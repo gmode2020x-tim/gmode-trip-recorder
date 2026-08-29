@@ -1,4 +1,4 @@
-# GMODE Trip Recorder 2.0
+# GMODE Trip Recorder 2.1.7
 
 GMODE Trip Recorder is an offline-first Android GPS and telemetry recorder designed for a landscape-mounted phone. It records to a local Room database first, keeps working without Home Assistant, exports standard trip files, and retries authenticated Home Assistant uploads when connectivity returns.
 
@@ -6,12 +6,12 @@ The v2 cockpit combines a scene-matched procedural 3D vehicle, live pitch and ro
 
 ![GMODE cockpit](play-store/screenshots/01-attitude-dashboard.png)
 
-## Download version 2.1.6
+## Download version 2.1.7
 
-- **Recommended phone package:** [GMODE-Trip-Recorder-v2.1.6-install.zip](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.6/GMODE-Trip-Recorder-v2.1.6-install.zip)
-- **APK only:** [GMODE-Trip-Recorder-v2.1.6-sideload.apk](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.6/GMODE-Trip-Recorder-v2.1.6-sideload.apk)
-- **Checksums:** [GMODE-Trip-Recorder-v2.1.6-SHA256SUMS.txt](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.6/GMODE-Trip-Recorder-v2.1.6-SHA256SUMS.txt)
-- **Release page:** [GMODE Trip Recorder v2.1.6](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/tag/v2.1.6)
+- **Recommended phone package:** [GMODE-Trip-Recorder-v2.1.7-install.zip](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.7/GMODE-Trip-Recorder-v2.1.7-install.zip)
+- **APK only:** [GMODE-Trip-Recorder-v2.1.7-sideload.apk](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.7/GMODE-Trip-Recorder-v2.1.7-sideload.apk)
+- **Checksums:** [GMODE-Trip-Recorder-v2.1.7-SHA256SUMS.txt](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.7/GMODE-Trip-Recorder-v2.1.7-SHA256SUMS.txt)
+- **Release page:** [GMODE Trip Recorder v2.1.7](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/tag/v2.1.7)
 
 The ZIP contains the sideload APK, checksum file, this installation guide, and the screenshots used below. The Play `.aab` on the release page is for Google Play Console and cannot be installed directly on a phone.
 
@@ -19,6 +19,8 @@ The ZIP contains the sideload APK, checksum file, this installation guide, and t
 
 - Manual or opt-in automatic trip recording with Street, Off road, Snow, and Water classifications.
 - Hybrid home detection using the saved GPS zone and optional current Wi-Fi SSID.
+- Non-destructive stationary trimming with configurable speed, radius, pause, and route-leg split thresholds.
+- Optional home-zone stopping for manually started trips.
 - Full live GPS, accuracy, altitude, speed, bearing, GNSS satellite, barometer, motion, battery, and network monitoring whenever the cockpit is visible; trip points are persisted only while recording.
 - One combined GPS Sky gauge plots real satellite azimuth/elevation, colour-codes C/N0 strength, marks satellites used in the fix, and overlays the accuracy radius, position, speed, altitude, and course.
 - Five scene-matched 3D vehicles: Truck, SxS, Sand rail, Snowmobile, and Mini jet boat.
@@ -27,6 +29,7 @@ The ZIP contains the sideload APK, checksum file, this installation guide, and t
 - Reference Red plus five preset themes and a custom RGB accent.
 - Stationary pitch/roll zero calibration and adjustable caution/limit thresholds.
 - GPX, KML, GeoJSON, and full-telemetry CSV export through Android's document picker.
+- Trimmed exports preserve separate route legs while every original GPS point remains stored locally and in Home Assistant.
 - Durable Home Assistant uploads in idempotent 500-point batches with network-constrained retry; LAN-only HA URLs are explicitly routed over available Wi-Fi instead of cellular.
 - Fifteen-minute and event-driven diagnostic heartbeats, retained app logs, and authenticated HA-to-phone notices, bounded settings, update metadata, and safe sync/re-arm commands.
 - No advertising, analytics, account system, or GMODE cloud service.
@@ -49,16 +52,16 @@ The ZIP contains the sideload APK, checksum file, this installation guide, and t
 
 The GitHub release has two deliberately different artifacts:
 
-- `GMODE-Trip-Recorder-v2.1.5-sideload.apk` is signed with the existing sideload/debug lineage so it can update the previous GitHub APK without erasing local trips or settings.
-- `GMODE-Trip-Recorder-v2.1.5-play.aab` is signed with the private upload key and is intended only for Google Play Console. Google Play App Signing supplies the distribution signature. Do not try to open the AAB on the phone.
+- `GMODE-Trip-Recorder-v2.1.7-sideload.apk` is signed with the existing sideload/debug lineage so it can update the previous GitHub APK without erasing local trips or settings.
+- `GMODE-Trip-Recorder-v2.1.7-play.aab` is signed with the private upload key and is intended only for Google Play Console. Google Play App Signing supplies the distribution signature. Do not try to open the AAB on the phone.
 
 ### 1. Download and extract
 
 1. Open the **recommended phone package** link above in Chrome or Samsung Internet.
-2. If GitHub shows the release page, expand **Assets** and tap `GMODE-Trip-Recorder-v2.1.5-install.zip`.
+2. If GitHub shows the release page, expand **Assets** and tap `GMODE-Trip-Recorder-v2.1.7-install.zip`.
 3. When the download finishes, open Samsung **My Files > Downloads**.
 4. Tap the ZIP, choose **Extract**, then open the extracted folder.
-5. Tap `GMODE-Trip-Recorder-v2.1.5-sideload.apk`.
+5. Tap `GMODE-Trip-Recorder-v2.1.7-sideload.apk`.
 
 You can skip extraction by downloading the **APK only** link instead.
 
@@ -79,7 +82,7 @@ The same control is available under **Settings > Security and privacy > More sec
 3. Do **not** uninstall the old version first unless you intentionally want to erase app-private trips and settings.
 4. When Android reports **App installed**, tap **Open**.
 
-If Android reports that the package conflicts with an existing app, the installed copy was signed by a different key. Export any required trips, uninstall that incompatible copy, and then install v2.1.5.
+If Android reports that the package conflicts with an existing app, the installed copy was signed by a different key. Export any required trips, uninstall that incompatible copy, and then install v2.1.7.
 
 ### 4. Complete first-run permissions
 
@@ -127,13 +130,13 @@ The six side buttons can be assigned after installation:
 The published SHA-256 file lets you confirm that the download is complete and unchanged. On Windows PowerShell:
 
 ```powershell
-Get-FileHash .\GMODE-Trip-Recorder-v2.1.6-sideload.apk -Algorithm SHA256
+Get-FileHash .\GMODE-Trip-Recorder-v2.1.7-sideload.apk -Algorithm SHA256
 ```
 
 The APK must equal:
 
 ```text
-d6de62b60ef01b4ef5f4aea273852db8cfe6ef8857391405d8b68d92cfdea2d4
+793c4c9b2b8706e712a85f44fcc77d28361bdf2f83ae354a1c55a7d4c474b4a6
 ```
 
 ### Installation troubleshooting

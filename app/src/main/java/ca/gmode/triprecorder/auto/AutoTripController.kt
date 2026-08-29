@@ -47,22 +47,26 @@ class AutoTripController(
         }
     }
 
-    fun handleEnter() {
-        val dwell = settings.read().returnDwellMinutes
-        if (state.activeAutoTripId == null) {
+    suspend fun handleEnter() {
+        val config = settings.read()
+        val active = repository.activeTrip()
+        val tripId = state.activeAutoTripId
+            ?: active?.id?.takeIf { config.stopManualTripsAtHome }
+        if (tripId == null || active?.id != tripId) {
             state.clearReturnDwell()
             cancelReturnCheck(context)
             state.updateStatus("At home — waiting for the next departure")
             return
         }
-        val deadline = state.beginReturnDwell(dwell, nowEpochMs()) ?: return
+        val deadline = state.beginReturnDwell(tripId, config.returnDwellMinutes, nowEpochMs()) ?: return
         scheduleReturnCheck(context, deadline)
         val remainingMinutes = ((deadline - nowEpochMs()).coerceAtLeast(0L) + 59_999L) / 60_000L
-        state.updateStatus("Home detected — stops in $remainingMinutes minutes if still inside the zone")
+        val kind = if (state.activeAutoTripId == tripId) "Automatic trip" else "Manual trip"
+        state.updateStatus("Home detected — $kind stops in $remainingMinutes minutes if still inside the zone")
     }
 
     suspend fun handleDwell(): Boolean {
-        val autoTripId = state.activeAutoTripId ?: run {
+        val tripId = state.returnDwellTripId ?: run {
             state.clearReturnDwell()
             state.updateStatus("At home — waiting for the next departure")
             return false
@@ -73,15 +77,24 @@ class AutoTripController(
             return false
         }
         val active = repository.activeTrip()
-        if (active?.id != autoTripId) {
-            state.activeAutoTripId = null
-            state.updateStatus("At home — no automatic trip is active")
+        if (active?.id != tripId) {
+            if (state.activeAutoTripId == tripId) state.activeAutoTripId = null
+            state.clearReturnDwell()
+            state.updateStatus("At home — no matching trip is active")
             return false
         }
         repository.stopTrip()
         stopTracking(context)
-        state.activeAutoTripId = null
-        state.updateStatus("Returned home — automatic trip stopped and queued for sync")
+        val automatic = state.activeAutoTripId == tripId
+        if (automatic) state.activeAutoTripId = null
+        state.clearReturnDwell()
+        state.updateStatus(
+            if (automatic) {
+                "Returned home — automatic trip stopped and queued for sync"
+            } else {
+                "Returned home — manual trip stopped and queued for sync"
+            },
+        )
         enqueueSync(context)
         return true
     }

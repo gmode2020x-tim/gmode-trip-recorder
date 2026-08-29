@@ -3,11 +3,17 @@ package ca.gmode.triprecorder.sync
 import ca.gmode.triprecorder.BuildConfig
 import ca.gmode.triprecorder.data.PointEntity
 import ca.gmode.triprecorder.data.TripEntity
+import ca.gmode.triprecorder.settings.AutoRecordingConfig
 import org.json.JSONArray
 import org.json.JSONObject
 
 object UploadPayloadFactory {
-    fun build(deviceId: String, trip: TripEntity, points: List<PointEntity>): String {
+    fun build(
+        deviceId: String,
+        trip: TripEntity,
+        points: List<PointEntity>,
+        config: AutoRecordingConfig? = null,
+    ): String {
         val tripJson = JSONObject()
             .put("id", trip.id)
             .put("title", trip.title)
@@ -15,6 +21,17 @@ object UploadPayloadFactory {
             .put("status", trip.status)
             .put("startAt", trip.startAt)
             .putNullable("endAt", trip.endAt)
+        config?.let {
+            tripJson.put(
+                "stationaryTrim",
+                JSONObject()
+                    .put("enabled", it.stationaryTrimEnabled)
+                    .put("radiusMeters", it.stationaryRadiusMeters)
+                    .put("pauseMinutes", it.stationaryPauseMinutes)
+                    .put("splitMinutes", it.stationarySplitMinutes)
+                    .put("speedKmh", it.stationarySpeedKmh),
+            )
+        }
 
         val pointsJson = JSONArray()
         points.forEach { point ->

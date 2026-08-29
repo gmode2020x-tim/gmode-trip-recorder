@@ -14,6 +14,12 @@ data class AutoRecordingConfig(
     val locationIntervalSeconds: Int = DEFAULT_LOCATION_INTERVAL_SECONDS,
     val minimumDistanceMeters: Int = DEFAULT_MINIMUM_DISTANCE_METERS,
     val tripType: String = "street",
+    val stationaryTrimEnabled: Boolean = true,
+    val stationaryRadiusMeters: Int = DEFAULT_STATIONARY_RADIUS_METERS,
+    val stationaryPauseMinutes: Int = DEFAULT_STATIONARY_PAUSE_MINUTES,
+    val stationarySplitMinutes: Int = DEFAULT_STATIONARY_SPLIT_MINUTES,
+    val stationarySpeedKmh: Double = DEFAULT_STATIONARY_SPEED_KMH,
+    val stopManualTripsAtHome: Boolean = false,
 ) {
     fun normalized(): AutoRecordingConfig = copy(
         homeLatitude = homeLatitude?.takeIf { it in -90.0..90.0 },
@@ -25,6 +31,12 @@ data class AutoRecordingConfig(
         locationIntervalSeconds = locationIntervalSeconds.coerceIn(2, 300),
         minimumDistanceMeters = minimumDistanceMeters.coerceIn(1, 500),
         tripType = tripType.takeIf { it in TRIP_TYPES } ?: "street",
+        stationaryRadiusMeters = stationaryRadiusMeters.coerceIn(25, 500),
+        stationaryPauseMinutes = stationaryPauseMinutes.coerceIn(1, 30),
+        stationarySplitMinutes = stationarySplitMinutes
+            .coerceIn(5, 120)
+            .coerceAtLeast(stationaryPauseMinutes.coerceIn(1, 30)),
+        stationarySpeedKmh = stationarySpeedKmh.coerceIn(1.0, 20.0),
     )
 
     val hasHomeLocation: Boolean
@@ -39,6 +51,10 @@ data class AutoRecordingConfig(
         const val DEFAULT_RETURN_DWELL_MINUTES = 5
         const val DEFAULT_LOCATION_INTERVAL_SECONDS = 5
         const val DEFAULT_MINIMUM_DISTANCE_METERS = 5
+        const val DEFAULT_STATIONARY_RADIUS_METERS = 150
+        const val DEFAULT_STATIONARY_PAUSE_MINUTES = 3
+        const val DEFAULT_STATIONARY_SPLIT_MINUTES = 15
+        const val DEFAULT_STATIONARY_SPEED_KMH = 5.4
         val TRIP_TYPES = setOf("street", "off_road", "snow", "water")
     }
 }
@@ -60,6 +76,26 @@ class AutoRecordingSettings(context: Context) {
         locationIntervalSeconds = preferences.getInt(KEY_LOCATION_INTERVAL, AutoRecordingConfig.DEFAULT_LOCATION_INTERVAL_SECONDS),
         minimumDistanceMeters = preferences.getInt(KEY_MINIMUM_DISTANCE, AutoRecordingConfig.DEFAULT_MINIMUM_DISTANCE_METERS),
         tripType = preferences.getString(KEY_TRIP_TYPE, "street") ?: "street",
+        stationaryTrimEnabled = preferences.getBoolean(KEY_STATIONARY_TRIM_ENABLED, true),
+        stationaryRadiusMeters = preferences.getInt(
+            KEY_STATIONARY_RADIUS,
+            AutoRecordingConfig.DEFAULT_STATIONARY_RADIUS_METERS,
+        ),
+        stationaryPauseMinutes = preferences.getInt(
+            KEY_STATIONARY_PAUSE,
+            AutoRecordingConfig.DEFAULT_STATIONARY_PAUSE_MINUTES,
+        ),
+        stationarySplitMinutes = preferences.getInt(
+            KEY_STATIONARY_SPLIT,
+            AutoRecordingConfig.DEFAULT_STATIONARY_SPLIT_MINUTES,
+        ),
+        stationarySpeedKmh = java.lang.Double.longBitsToDouble(
+            preferences.getLong(
+                KEY_STATIONARY_SPEED,
+                java.lang.Double.doubleToRawLongBits(AutoRecordingConfig.DEFAULT_STATIONARY_SPEED_KMH),
+            ),
+        ),
+        stopManualTripsAtHome = preferences.getBoolean(KEY_STOP_MANUAL_AT_HOME, false),
     ).normalized()
 
     fun save(config: AutoRecordingConfig) {
@@ -75,6 +111,12 @@ class AutoRecordingSettings(context: Context) {
             .putInt(KEY_LOCATION_INTERVAL, normalized.locationIntervalSeconds)
             .putInt(KEY_MINIMUM_DISTANCE, normalized.minimumDistanceMeters)
             .putString(KEY_TRIP_TYPE, normalized.tripType)
+            .putBoolean(KEY_STATIONARY_TRIM_ENABLED, normalized.stationaryTrimEnabled)
+            .putInt(KEY_STATIONARY_RADIUS, normalized.stationaryRadiusMeters)
+            .putInt(KEY_STATIONARY_PAUSE, normalized.stationaryPauseMinutes)
+            .putInt(KEY_STATIONARY_SPLIT, normalized.stationarySplitMinutes)
+            .putLong(KEY_STATIONARY_SPEED, java.lang.Double.doubleToRawLongBits(normalized.stationarySpeedKmh))
+            .putBoolean(KEY_STOP_MANUAL_AT_HOME, normalized.stopManualTripsAtHome)
             .apply()
     }
 
@@ -101,6 +143,12 @@ class AutoRecordingSettings(context: Context) {
         const val KEY_LOCATION_INTERVAL = "location_interval_seconds"
         const val KEY_MINIMUM_DISTANCE = "minimum_distance_meters"
         const val KEY_TRIP_TYPE = "trip_type"
+        const val KEY_STATIONARY_TRIM_ENABLED = "stationary_trim_enabled"
+        const val KEY_STATIONARY_RADIUS = "stationary_radius_meters"
+        const val KEY_STATIONARY_PAUSE = "stationary_pause_minutes"
+        const val KEY_STATIONARY_SPLIT = "stationary_split_minutes"
+        const val KEY_STATIONARY_SPEED = "stationary_speed_kmh"
+        const val KEY_STOP_MANUAL_AT_HOME = "stop_manual_trips_at_home"
     }
 }
 
@@ -114,26 +162,44 @@ class AutoRecordingStateStore(context: Context) {
             preferences.edit().apply {
                 val changed = preferences.getString(KEY_ACTIVE_TRIP_ID, null) != value
                 if (value == null) remove(KEY_ACTIVE_TRIP_ID) else putString(KEY_ACTIVE_TRIP_ID, value)
-                if (changed) remove(KEY_RETURN_DWELL_DEADLINE_EPOCH_MS)
+                if (changed) {
+                    remove(KEY_RETURN_DWELL_DEADLINE_EPOCH_MS)
+                    remove(KEY_RETURN_DWELL_TRIP_ID)
+                }
             }.apply()
         }
 
     val returnDwellDeadlineEpochMs: Long?
         get() = preferences.getLong(KEY_RETURN_DWELL_DEADLINE_EPOCH_MS, 0L).takeIf { it > 0L }
 
+    var returnDwellTripId: String?
+        get() = preferences.getString(KEY_RETURN_DWELL_TRIP_ID, null)
+        set(value) {
+            preferences.edit().apply {
+                if (value == null) remove(KEY_RETURN_DWELL_TRIP_ID) else putString(KEY_RETURN_DWELL_TRIP_ID, value)
+            }.apply()
+        }
+
     fun beginReturnDwell(
+        tripId: String,
         dwellMinutes: Int,
         nowEpochMs: Long = System.currentTimeMillis(),
     ): Long? {
-        if (activeAutoTripId == null) return null
-        returnDwellDeadlineEpochMs?.let { return it }
+        if (tripId.isBlank()) return null
+        if (returnDwellTripId == tripId) return returnDwellDeadlineEpochMs
         val deadline = nowEpochMs + dwellMinutes.coerceIn(1, 120) * 60_000L
-        preferences.edit().putLong(KEY_RETURN_DWELL_DEADLINE_EPOCH_MS, deadline).apply()
+        preferences.edit()
+            .putString(KEY_RETURN_DWELL_TRIP_ID, tripId)
+            .putLong(KEY_RETURN_DWELL_DEADLINE_EPOCH_MS, deadline)
+            .apply()
         return deadline
     }
 
     fun clearReturnDwell() {
-        preferences.edit().remove(KEY_RETURN_DWELL_DEADLINE_EPOCH_MS).apply()
+        preferences.edit()
+            .remove(KEY_RETURN_DWELL_DEADLINE_EPOCH_MS)
+            .remove(KEY_RETURN_DWELL_TRIP_ID)
+            .apply()
     }
 
     fun status(): String = preferences.getString(KEY_STATUS, "Automatic recording is off")
@@ -149,6 +215,7 @@ class AutoRecordingStateStore(context: Context) {
         const val PREFERENCES = "auto_recording_state"
         const val KEY_ACTIVE_TRIP_ID = "active_auto_trip_id"
         const val KEY_RETURN_DWELL_DEADLINE_EPOCH_MS = "return_dwell_deadline_epoch_ms"
+        const val KEY_RETURN_DWELL_TRIP_ID = "return_dwell_trip_id"
         const val KEY_STATUS = "status"
     }
 }

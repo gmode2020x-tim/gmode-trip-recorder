@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.7 - 2026-08-29
+
+- Added non-destructive stationary trimming with user-adjustable radius, speed, pause, and route-leg split thresholds.
+- Added an opt-in setting that stops manually started trips after the configured return-home dwell.
+- Preserved every original point locally and in Home Assistant while using trimmed legs for summaries and GPX, KML, GeoJSON, and CSV exports.
+- Added multi-segment exports and Home Assistant stationary-period diagnostics so long stops no longer inflate driving time.
+
 ## 2.1.6 - 2026-08-29
 
 - Fixed LAN-only Home Assistant sync when Samsung/Android prefers its cellular CLAT route while Wi-Fi is also connected.

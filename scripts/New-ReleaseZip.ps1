@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory = $false)]
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = '2.1.6'
+    [string]$Version = '2.1.7'
 )
 
 Set-StrictMode -Version Latest
@@ -32,6 +32,7 @@ $packageFiles = @(
     @{ Source = (Join-Path $projectRoot 'play-store\screenshots\03-speed-street.png'); Entry = "$packageRoot/play-store/screenshots/03-speed-street.png" },
     @{ Source = (Join-Path $projectRoot 'play-store\screenshots\04-water-course.png'); Entry = "$packageRoot/play-store/screenshots/04-water-course.png" },
     @{ Source = (Join-Path $projectRoot 'screenshots\GMODE-v1.10.0-hybrid-home-settings.png'); Entry = "$packageRoot/screenshots/GMODE-v1.10.0-hybrid-home-settings.png" },
+    @{ Source = (Join-Path $projectRoot 'screenshots\GMODE-v2.1.7-stationary-trimming-settings.png'); Entry = "$packageRoot/screenshots/GMODE-v2.1.7-stationary-trimming-settings.png" },
     @{ Source = (Join-Path $projectRoot 'screenshots\GMODE-v1.7.0-side-button-settings.png'); Entry = "$packageRoot/screenshots/GMODE-v1.7.0-side-button-settings.png" }
 )
 

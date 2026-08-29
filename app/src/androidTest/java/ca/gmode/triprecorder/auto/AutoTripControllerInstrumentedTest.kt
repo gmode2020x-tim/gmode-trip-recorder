@@ -46,7 +46,7 @@ class AutoTripControllerInstrumentedTest {
     }
 
     @Test
-    fun homeExitStartsAndReturnDwellStopsOnlyAutomaticTrip() = runBlocking {
+    fun homeExitStartsAndReturnDwellStopsAutomaticTrip() = runBlocking {
         settings.save(
             AutoRecordingConfig(
                 enabled = true,
@@ -121,6 +121,70 @@ class AutoTripControllerInstrumentedTest {
         assertFalse(controller.handleExit())
         assertEquals("Manual trip", repository.activeTrip()?.title)
         assertNull(state.activeAutoTripId)
+    }
+
+    @Test
+    fun returnDwellCanStopManualTripWhenUserEnablesIt() = runBlocking {
+        settings.save(
+            AutoRecordingConfig(
+                enabled = true,
+                homeLatitude = 44.0,
+                homeLongitude = -79.0,
+                returnDwellMinutes = 2,
+                stopManualTripsAtHome = true,
+            ),
+        )
+        val manual = repository.startTrip("Manual trip", "street")
+        var now = 2_000_000L
+        var serviceStopped = false
+        val controller = AutoTripController(
+            context = context,
+            repository = repository,
+            settings = settings,
+            state = state,
+            startTracking = { _, _ -> },
+            stopTracking = { serviceStopped = true },
+            enqueueSync = {},
+            scheduleReturnCheck = { _, _ -> },
+            cancelReturnCheck = {},
+            nowEpochMs = { now },
+        )
+
+        controller.handleEnter()
+        assertEquals(manual.id, state.returnDwellTripId)
+        now += 2 * 60_000L
+        assertTrue(controller.handleDwell())
+        assertNull(repository.activeTrip())
+        assertTrue(serviceStopped)
+        assertTrue(state.status().contains("manual trip stopped"))
+    }
+
+    @Test
+    fun returnDwellLeavesManualTripRunningWhenUserDisablesIt() = runBlocking {
+        settings.save(
+            AutoRecordingConfig(
+                enabled = true,
+                homeLatitude = 44.0,
+                homeLongitude = -79.0,
+                stopManualTripsAtHome = false,
+            ),
+        )
+        repository.startTrip("Manual trip", "street")
+        val controller = AutoTripController(
+            context = context,
+            repository = repository,
+            settings = settings,
+            state = state,
+            startTracking = { _, _ -> },
+            stopTracking = {},
+            enqueueSync = {},
+            scheduleReturnCheck = { _, _ -> throw AssertionError("must not schedule") },
+            cancelReturnCheck = {},
+        )
+
+        controller.handleEnter()
+        assertEquals("Manual trip", repository.activeTrip()?.title)
+        assertNull(state.returnDwellTripId)
     }
 
     @Test

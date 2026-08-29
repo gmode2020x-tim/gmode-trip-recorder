@@ -17,6 +17,10 @@ class AutoRecordingConfigTest {
             locationIntervalSeconds = 1,
             minimumDistanceMeters = 999,
             tripType = "unknown",
+            stationaryRadiusMeters = 1,
+            stationaryPauseMinutes = 50,
+            stationarySplitMinutes = 4,
+            stationarySpeedKmh = 99.0,
         ).normalized()
 
         assertNull(normalized.homeLatitude)
@@ -28,6 +32,10 @@ class AutoRecordingConfigTest {
         assertEquals(2, normalized.locationIntervalSeconds)
         assertEquals(500, normalized.minimumDistanceMeters)
         assertEquals("street", normalized.tripType)
+        assertEquals(25, normalized.stationaryRadiusMeters)
+        assertEquals(30, normalized.stationaryPauseMinutes)
+        assertEquals(30, normalized.stationarySplitMinutes)
+        assertEquals(20.0, normalized.stationarySpeedKmh, 0.0)
     }
 
     @Test

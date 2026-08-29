@@ -20,12 +20,25 @@
 | Home Wi-Fi | Not set | Current/typed SSID, up to 64 chars | Optional hybrid departure signal; never uploaded/exported. |
 | Home radius | 250 m | 100-5,000 m | GPS distance that counts as home, with location uncertainty considered. |
 | Wi-Fi departure delay | 2 min | 1-30 min | Confirmation delay after leaving the chosen SSID. |
-| Return delay | 5 min | 1-120 min | Required dwell inside home before an automatic trip stops. |
+| Return delay | 5 min | 1-120 min | Required dwell inside home before an automatic trip, or an opted-in manual trip, stops. |
 | GPS interval | 5 sec | 2-300 sec | Requested location update interval. Shorter uses more battery. |
 | Minimum movement | 5 m | 1-500 m | Requested minimum displacement between location updates. |
 | Automatic trip type | Street | Street/Off road/Snow/Water | Type assigned to automatically created trips. |
 
 Android may batch low-power background/geofence delivery. Force-stopping the app disables automatic events until it is opened again.
+
+## Stationary trimming
+
+| Setting | Default | Accepted range | Effect |
+| --- | ---: | --- | --- |
+| Trim stationary time | On | On/off | Keeps every raw point but excludes confirmed stationary periods from derived statistics and normal exports. |
+| Stop radius | 150 m | 25-500 m | Maximum spatial cluster that still counts as one stopped location. |
+| Stationary speed | 5.4 km/h | 1-20 km/h | Fixes at or below this speed contribute to stationary confirmation. |
+| Pause after | 3 min | 1-30 min | Minimum confirmed stop before its time and GPS drift are removed from trip statistics. |
+| Split after | 15 min | 5-120 min, not shorter than pause | A longer stop creates separate route legs in exports and Home Assistant metadata. |
+| Stop manual trips at home | Off | On/off | Uses the saved home radius and return delay to finish a manually started trip. |
+
+The 150 m default was selected from real S24 comparison data: 100 m fragmented a parking-area stop, while 250 m risked consuming legitimate roadway. Home stopping requires a saved home point and background location permission. CSV exports add a `segment` column; GPX uses multiple `trkseg` elements, KML uses `gx:MultiTrack`, and GeoJSON uses `MultiLineString`.
 
 ## Appearance
 

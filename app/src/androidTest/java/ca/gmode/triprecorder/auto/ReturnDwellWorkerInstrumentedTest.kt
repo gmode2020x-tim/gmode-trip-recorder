@@ -37,7 +37,7 @@ class ReturnDwellWorkerInstrumentedTest {
         val trip = repository.startTrip("Automatic deadline test", "street")
         val state = AutoRecordingStateStore(context)
         state.activeAutoTripId = trip.id
-        state.beginReturnDwell(1, System.currentTimeMillis() - 60_001L)
+        state.beginReturnDwell(trip.id, 1, System.currentTimeMillis() - 60_001L)
 
         val result = TestListenableWorkerBuilder<ReturnDwellWorker>(context).build().doWork()
 

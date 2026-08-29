@@ -62,7 +62,7 @@ class UploadWorker(
                     return@withContext Result.success()
                 }
                 val points = dao.getPendingPoints(trip.id, BATCH_SIZE)
-                val body = UploadPayloadFactory.build(settings.deviceId, trip, points)
+                val body = UploadPayloadFactory.build(settings.deviceId, trip, points, automaticSettings.read())
                 val request = Request.Builder()
                     .url("$baseUrl/api/gmode_trip_recorder/mobile/upload")
                     .header("Authorization", "Bearer $token")
@@ -151,6 +151,12 @@ class UploadWorker(
             .put("gpsStatus", gps.status)
             .put("gpsRetryCount", gps.retryCount)
             .put("autoEnabled", auto.enabled)
+            .put("stationaryTrimEnabled", auto.stationaryTrimEnabled)
+            .put("stationaryRadiusMeters", auto.stationaryRadiusMeters)
+            .put("stationaryPauseMinutes", auto.stationaryPauseMinutes)
+            .put("stationarySplitMinutes", auto.stationarySplitMinutes)
+            .put("stationarySpeedKmh", auto.stationarySpeedKmh)
+            .put("stopManualTripsAtHome", auto.stopManualTripsAtHome)
             .put("autoStatus", automaticState.status())
             .put("pendingPoints", pending)
             .put("activeTripId", active?.id.orEmpty())
@@ -225,6 +231,12 @@ class UploadWorker(
                     locationIntervalSeconds = values.optInt("locationIntervalSeconds", current.locationIntervalSeconds),
                     minimumDistanceMeters = values.optInt("minimumDistanceMeters", current.minimumDistanceMeters),
                     tripType = values.optString("tripType", current.tripType),
+                    stationaryTrimEnabled = values.optBoolean("stationaryTrimEnabled", current.stationaryTrimEnabled),
+                    stationaryRadiusMeters = values.optInt("stationaryRadiusMeters", current.stationaryRadiusMeters),
+                    stationaryPauseMinutes = values.optInt("stationaryPauseMinutes", current.stationaryPauseMinutes),
+                    stationarySplitMinutes = values.optInt("stationarySplitMinutes", current.stationarySplitMinutes),
+                    stationarySpeedKmh = values.optDouble("stationarySpeedKmh", current.stationarySpeedKmh),
+                    stopManualTripsAtHome = values.optBoolean("stopManualTripsAtHome", current.stopManualTripsAtHome),
                 ),
             )
             remoteControl.markApplied(revision)

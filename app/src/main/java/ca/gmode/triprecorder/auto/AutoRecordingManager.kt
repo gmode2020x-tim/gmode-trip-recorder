@@ -24,7 +24,8 @@ class AutoRecordingManager(private val context: Context) {
     fun refreshRegistration(callback: ((Boolean, String) -> Unit)? = null) {
         restoreReturnDwellCheck()
         val config = settings.read()
-        if (!config.enabled) {
+        val manualHomeStopArmed = config.stopManualTripsAtHome && config.hasHomeLocation
+        if (!config.enabled && !manualHomeStopArmed) {
             client.removeGeofences(pendingIntent())
             wifiMonitor.refresh(config)
             complete(false, "Automatic recording is off", callback)
@@ -78,7 +79,9 @@ class AutoRecordingManager(private val context: Context) {
             client.addGeofences(request, pendingIntent)
                 .addOnSuccessListener {
                     val returnDeadline = state.returnDwellDeadlineEpochMs
-                    val message = if (state.activeAutoTripId == null) {
+                    val message = if (!config.enabled) {
+                        "Manual trip home stopping armed — ${config.homeRadiusMeters} m zone"
+                    } else if (state.activeAutoTripId == null) {
                         if (config.hasHomeWifi) {
                             "Armed — ${config.homeWifiSsid} plus the ${config.homeRadiusMeters} m GPS zone detect departures"
                         } else {
@@ -134,9 +137,9 @@ class AutoRecordingManager(private val context: Context) {
 
     private fun restoreReturnDwellCheck() {
         val deadline = state.returnDwellDeadlineEpochMs
-        if (state.activeAutoTripId != null && deadline != null) {
+        if (state.returnDwellTripId != null && deadline != null) {
             ReturnDwellWorker.scheduleAt(appContext, deadline)
-        } else if (state.activeAutoTripId == null) {
+        } else if (state.returnDwellTripId == null) {
             state.clearReturnDwell()
             ReturnDwellWorker.cancel(appContext)
         }

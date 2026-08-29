@@ -60,7 +60,7 @@ class TripFileExporterTest {
         val lines = output.lines().filter { it.isNotEmpty() }
 
         assertEquals(3, lines.size)
-        assertTrue(lines.first().startsWith("trip_id,trip_title,trip_type,sequence"))
+        assertTrue(lines.first().startsWith("trip_id,trip_title,trip_type,segment,sequence"))
         assertTrue(lines[1].contains("\"Trip, \"\"quoted\"\"\""))
         assertTrue(lines[1].contains(",1013.25,"))
         assertTrue(lines.first().contains("acceleration_peak_x_ms2,acceleration_peak_y_ms2,acceleration_peak_z_ms2"))

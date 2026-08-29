@@ -21,7 +21,7 @@ The v2 cockpit features a dynamic 3D vehicle matched to the trip scene: Truck, S
 
 Choose and reorder 11 gauges, including a combined GNSS sky plot with real satellite placement, colour-coded signal strength, fix-use status, accuracy radius, and position data. Customize six side buttons to open installed apps or GMODE actions, select a colour theme, and calibrate pitch/roll zero for the phone mount.
 
-Trips can be started manually or automatically after leaving a user-selected home GPS zone and optional Wi-Fi network. Automatic recording is opt-in and off by default. Export retained trips as GPX, KML, GeoJSON, or full-telemetry CSV.
+Trips can be started manually or automatically after leaving a user-selected home GPS zone and optional Wi-Fi network. Automatic recording is opt-in and off by default. Configurable stationary trimming removes parked time and GPS drift from derived statistics without deleting raw fixes, and can split exports into route legs. Users can optionally let the saved home zone stop a manual trip. Export retained trips as GPX, KML, GeoJSON, or full-telemetry CSV.
 
 GMODE has no advertising, analytics, account system, or GMODE cloud service. Data stays on the phone unless you send it to the Home Assistant server or file destination you configure.
 

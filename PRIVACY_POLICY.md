@@ -18,7 +18,7 @@ When the user starts a trip or enables automatic trip recording, the app may pro
 
 ## Background location
 
-Automatic trip recording is optional and disabled by default. If enabled, GMODE collects precise location in the background to detect when the phone leaves or returns to the saved home area and to record the route, even when the app is closed or not in use. Android's **Allow all the time** location setting is required for that feature. Manual foreground recording does not require automatic recording to be enabled.
+Automatic trip recording and manual-trip home stopping are separate optional features and are disabled by default. If either is enabled, GMODE uses precise location in the background to detect when the phone leaves or returns to the saved home area and, while a trip is active, to record the route even when the app is closed or not in use. Android's **Allow all the time** location setting is required for these home-detection features. Ordinary manual foreground recording does not require either option.
 
 ## Storage and sharing
 
@@ -38,7 +38,7 @@ The phone retains locally recorded trips after successful synchronization so the
 ## Permissions
 
 - **Precise/approximate location:** route recording, home-zone detection, and Android Wi-Fi SSID access.
-- **Background location:** optional automatic departure/return recording.
+- **Background location:** optional automatic departure/return recording and optional home-zone stopping for manual trips.
 - **Notifications:** persistent foreground-service status while a trip is recording.
 - **Nearby devices/Bluetooth:** displays live Bluetooth status when the user enables the indicator permission.
 - **Network access and network/Wi-Fi state:** Home Assistant synchronization and hybrid home detection.
