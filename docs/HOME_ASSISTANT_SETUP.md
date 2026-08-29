@@ -19,7 +19,7 @@ In Home Assistant, open the user's profile and create a **Long-Lived Access Toke
 1. In GMODE settings open **System > Home Assistant connection**.
 2. Enter the base URL, for example `http://192.168.1.10:8123` on a trusted LAN or an HTTPS/VPN URL remotely.
 3. Paste the long-lived token and press **Save connection**.
-4. Press **Sync now**.
+4. Press **Sync now**. A manual sync cancels any delayed one-time retry and starts a fresh attempt immediately.
 5. Read the status below the buttons. **Up to date** means no unsynchronized local points remain.
 
 GMODE also sends an authenticated health heartbeat even when no trip points are pending. The app's **HA control + updates** section shows the last control revision, Home Assistant notice, and any newer version offered by your server.
@@ -79,6 +79,8 @@ Use `gmode_trip_recorder.clear_mobile_logs` to clear one phone's retained events
 | --- | --- |
 | Setup required | Save both a complete URL and token. Blank token input keeps an existing saved token. |
 | Waiting for connection | Verify phone network/VPN, HA reachability, DNS/IP, port 8123, and TLS certificate. |
+| Waiting for home Wi-Fi | The configured HA URL is private/LAN-only and no usable Wi-Fi or VPN route is available. Connect the phone to the home Wi-Fi, then press **Sync now**. |
+| Error says `from /192.0.0.x` | Android attempted the private HA address through cellular CLAT. GMODE 2.1.6+ selects an available Wi-Fi network for LAN-only URLs; also check Samsung **Settings > Connections > Data usage > Allowed networks for apps** and do not force GMODE to mobile data only. |
 | HTTP 401/403 | Create a new token for an authorized HA user and save it. |
 | HTTP 404 | Confirm the custom integration is installed/restarted and the mobile upload route exists. |
 | HTTP 5xx/408/429 | WorkManager retries automatically; inspect Home Assistant logs/resources. |

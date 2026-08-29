@@ -10,6 +10,8 @@
 6. Home Assistant acknowledges stable point IDs; only those rows are marked synchronized.
 7. Failed/repeated work uses exponential retry and does not block recording or export.
 
+For a private IPv4, local hostname, `.local`, loopback, link-local, CGNAT, or unique-local IPv6 Home Assistant URL, `HomeAssistantNetworkClient` binds OkHttp sockets and DNS to an available Wi-Fi `Network`. This prevents Android/Samsung cellular preference and CLAT addresses such as `192.0.0.x` from capturing LAN-only HA requests. A VPN default route remains valid when Wi-Fi is unavailable. Automatic event uploads retain WorkManager backoff; an explicit user sync replaces the delayed one-time worker so the attempt begins immediately.
+
 ## Automatic recording
 
 `AutoRecordingManager` combines an Android home geofence with `HomeWifiReader`/network callbacks. Wi-Fi departure begins the configurable confirmation window; GPS distance plus reported uncertainty prevents a router outage inside the home zone from starting a trip. Boot and package-replaced receivers restore a previously enabled configuration. Automatic recording is user-controlled and disabled by default.

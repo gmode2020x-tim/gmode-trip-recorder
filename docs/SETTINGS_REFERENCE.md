@@ -69,7 +69,7 @@ Factory defaults: Left top Spotify, Left middle Navi/Maps, Left bottom Camera, R
 | Home Assistant URL | Complete `http://` or `https://` base URL, without an API path. LAN HTTP is allowed by the app; prefer HTTPS/VPN on untrusted networks. |
 | Long-lived access token | Home Assistant user token; encrypted using Android Keystore. A blank field preserves an already saved token. |
 | Save connection | Validates/saves URL and nonblank replacement token, then queues sync. |
-| Sync now | Queues network-constrained WorkManager upload. |
+| Sync now | Replaces any delayed one-time retry and starts fresh network-constrained WorkManager upload. Private/LAN-only HA URLs use an available Wi-Fi network even when Android prefers cellular; VPN routes remain supported. |
 | Check HA now | Sends current diagnostics and logs, fetches the latest HA control revision, and processes a safe command if present. |
 | HA control + updates | Shows the HA notice, last applied revision, update version/URL/hash, and user-confirmed download action. |
 | S24 battery settings | Opens Android battery optimization settings for unrestricted operation. |

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.6 - 2026-08-29
+
+- Fixed LAN-only Home Assistant sync when Samsung/Android prefers its cellular CLAT route while Wi-Fi is also connected.
+- Bound private and local Home Assistant HTTP traffic and DNS resolution to an available Wi-Fi network, while retaining VPN support.
+- Changed user-requested sync and HA checks to replace a delayed one-time WorkManager retry and start immediately.
+- Added a specific waiting-for-home-Wi-Fi status and troubleshooting guidance without changing local-first trip retention.
+
 ## 2.1.5 - 2026-08-29
 
 - Renamed the three-axis shock display to G-Force.

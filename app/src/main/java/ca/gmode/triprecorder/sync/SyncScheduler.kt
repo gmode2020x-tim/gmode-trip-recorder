@@ -15,6 +15,14 @@ object SyncScheduler {
     private const val PERIODIC_WORK = "gmode-diagnostics-heartbeat"
 
     fun enqueue(context: Context) {
+        enqueue(context, ExistingWorkPolicy.KEEP)
+    }
+
+    fun enqueueImmediate(context: Context) {
+        enqueue(context, ExistingWorkPolicy.REPLACE)
+    }
+
+    private fun enqueue(context: Context, policy: ExistingWorkPolicy) {
         val request = OneTimeWorkRequestBuilder<UploadWorker>()
             .setConstraints(
                 Constraints.Builder()
@@ -25,7 +33,7 @@ object SyncScheduler {
             .build()
         WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(
             UNIQUE_WORK,
-            ExistingWorkPolicy.KEEP,
+            policy,
             request,
         )
     }

@@ -6,12 +6,12 @@ The v2 cockpit combines a scene-matched procedural 3D vehicle, live pitch and ro
 
 ![GMODE cockpit](play-store/screenshots/01-attitude-dashboard.png)
 
-## Download version 2.1.5
+## Download version 2.1.6
 
-- **Recommended phone package:** [GMODE-Trip-Recorder-v2.1.5-install.zip](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.5/GMODE-Trip-Recorder-v2.1.5-install.zip)
-- **APK only:** [GMODE-Trip-Recorder-v2.1.5-sideload.apk](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.5/GMODE-Trip-Recorder-v2.1.5-sideload.apk)
-- **Checksums:** [GMODE-Trip-Recorder-v2.1.5-SHA256SUMS.txt](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.5/GMODE-Trip-Recorder-v2.1.5-SHA256SUMS.txt)
-- **Release page:** [GMODE Trip Recorder v2.1.5](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/tag/v2.1.5)
+- **Recommended phone package:** [GMODE-Trip-Recorder-v2.1.6-install.zip](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.6/GMODE-Trip-Recorder-v2.1.6-install.zip)
+- **APK only:** [GMODE-Trip-Recorder-v2.1.6-sideload.apk](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.6/GMODE-Trip-Recorder-v2.1.6-sideload.apk)
+- **Checksums:** [GMODE-Trip-Recorder-v2.1.6-SHA256SUMS.txt](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.6/GMODE-Trip-Recorder-v2.1.6-SHA256SUMS.txt)
+- **Release page:** [GMODE Trip Recorder v2.1.6](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/tag/v2.1.6)
 
 The ZIP contains the sideload APK, checksum file, this installation guide, and the screenshots used below. The Play `.aab` on the release page is for Google Play Console and cannot be installed directly on a phone.
 
@@ -27,7 +27,7 @@ The ZIP contains the sideload APK, checksum file, this installation guide, and t
 - Reference Red plus five preset themes and a custom RGB accent.
 - Stationary pitch/roll zero calibration and adjustable caution/limit thresholds.
 - GPX, KML, GeoJSON, and full-telemetry CSV export through Android's document picker.
-- Durable Home Assistant uploads in idempotent 500-point batches with network-constrained retry.
+- Durable Home Assistant uploads in idempotent 500-point batches with network-constrained retry; LAN-only HA URLs are explicitly routed over available Wi-Fi instead of cellular.
 - Fifteen-minute and event-driven diagnostic heartbeats, retained app logs, and authenticated HA-to-phone notices, bounded settings, update metadata, and safe sync/re-arm commands.
 - No advertising, analytics, account system, or GMODE cloud service.
 
@@ -127,13 +127,13 @@ The six side buttons can be assigned after installation:
 The published SHA-256 file lets you confirm that the download is complete and unchanged. On Windows PowerShell:
 
 ```powershell
-Get-FileHash .\GMODE-Trip-Recorder-v2.1.5-sideload.apk -Algorithm SHA256
+Get-FileHash .\GMODE-Trip-Recorder-v2.1.6-sideload.apk -Algorithm SHA256
 ```
 
 The APK must equal:
 
 ```text
-ce679dcf5ec27ee75648692de3e3ac32c0d64d6c87a22a0454a05ca16f0e3fce
+d6de62b60ef01b4ef5f4aea273852db8cfe6ef8857391405d8b68d92cfdea2d4
 ```
 
 ### Installation troubleshooting
@@ -144,6 +144,7 @@ ce679dcf5ec27ee75648692de3e3ac32c0d64d6c87a22a0454a05ca16f0e3fce
 - **App not installed:** delete the incomplete download, download the ZIP again, and compare the checksum.
 - **Automatic recording does not start:** grant **Allow all the time** location access, use **Unrestricted** battery mode, remove GMODE from Samsung sleeping lists, open GMODE once after any force stop or reboot, and save automatic settings again.
 - **No live GPS data indoors:** test outside with precise location enabled and a clear view of the sky.
+- **HA connection error shows `from /192.0.0.x`:** Android selected its cellular translation path for a private HA address. Connect to the home Wi-Fi and press **Sync now**. GMODE 2.1.6+ explicitly binds LAN-only HA traffic to available Wi-Fi and starts a fresh sync instead of waiting for an older retry backoff.
 
 ## First run checklist
 

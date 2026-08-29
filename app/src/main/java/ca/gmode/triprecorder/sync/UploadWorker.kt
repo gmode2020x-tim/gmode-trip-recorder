@@ -28,7 +28,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.time.Instant
-import java.util.concurrent.TimeUnit
 
 class UploadWorker(
     appContext: Context,
@@ -42,11 +41,7 @@ class UploadWorker(
     private val automaticSettings = AutoRecordingSettings(appContext)
     private val automaticState = AutoRecordingStateStore(appContext)
     private val trackingDiagnostics = TrackingDiagnosticStore(appContext)
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
-        .build()
+    private val networkClient = HomeAssistantNetworkClient(appContext)
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val token = settings.token()
@@ -58,11 +53,12 @@ class UploadWorker(
 
         statusStore.update("Synchronizing", "Uploading locally saved trip data.")
         try {
-            exchangeDiagnosticsAndControl(baseUrl, token)
+            val client = networkClient.create(baseUrl)
+            exchangeDiagnosticsAndControl(baseUrl, token, client)
             repeat(MAX_BATCHES_PER_RUN) {
                 val trip = dao.getOldestDirtyTrip() ?: run {
                     statusStore.update("Up to date", "All recorded points and diagnostics are stored in Home Assistant.")
-                    exchangeDiagnosticsAndControl(baseUrl, token)
+                    exchangeDiagnosticsAndControl(baseUrl, token, client)
                     return@withContext Result.success()
                 }
                 val points = dao.getPendingPoints(trip.id, BATCH_SIZE)
@@ -103,11 +99,14 @@ class UploadWorker(
                 }
             }
             statusStore.update("Sync queued", "More locally saved points remain; synchronization will continue.")
-            exchangeDiagnosticsAndControl(baseUrl, token)
+            exchangeDiagnosticsAndControl(baseUrl, token, client)
             Result.retry()
         } catch (error: UploadHttpException) {
             statusStore.update("Sync failed", error.message ?: "Home Assistant rejected the request.")
             if (error.retryable) Result.retry() else Result.failure()
+        } catch (error: LocalNetworkUnavailableException) {
+            statusStore.update("Waiting for home Wi-Fi", error.message ?: "Home Wi-Fi is unavailable.")
+            Result.retry()
         } catch (error: IOException) {
             statusStore.update("Waiting for connection", error.message ?: "Home Assistant is unreachable.")
             Result.retry()
@@ -117,7 +116,7 @@ class UploadWorker(
         }
     }
 
-    private suspend fun exchangeDiagnosticsAndControl(baseUrl: String, token: String) {
+    private suspend fun exchangeDiagnosticsAndControl(baseUrl: String, token: String, client: OkHttpClient) {
         val sync = statusStore.read()
         val gps = trackingDiagnostics.read()
         val auto = automaticSettings.read()

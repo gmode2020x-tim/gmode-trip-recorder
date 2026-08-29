@@ -337,8 +337,8 @@ class MainActivity : AppCompatActivity() {
             CockpitAction.STOP -> TrackingService.stop(this)
             CockpitAction.AUTO, CockpitAction.SETTINGS, CockpitAction.HOME_ASSISTANT -> showSettingsScreen()
             CockpitAction.SYNC -> {
-                SyncScheduler.enqueue(this)
-                Toast.makeText(this, "Synchronization queued", Toast.LENGTH_SHORT).show()
+                SyncScheduler.enqueueImmediate(this)
+                Toast.makeText(this, "Synchronization started", Toast.LENGTH_SHORT).show()
             }
             CockpitAction.TRIP_TYPE -> {
                 val index = TRIP_TYPE_VALUES.indexOf(quickTripType).coerceAtLeast(0)
@@ -913,8 +913,8 @@ class MainActivity : AppCompatActivity() {
 
         save.setOnClickListener { saveConnection() }
         sync.setOnClickListener {
-            SyncScheduler.enqueue(this)
-            Toast.makeText(this, "Synchronization queued", Toast.LENGTH_SHORT).show()
+            SyncScheduler.enqueueImmediate(this)
+            Toast.makeText(this, "Synchronization started", Toast.LENGTH_SHORT).show()
         }
         haControl.setOnClickListener { handleHaControl() }
         battery.setOnClickListener {
@@ -1125,7 +1125,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 .show()
         } else {
-            SyncScheduler.enqueue(this)
+            SyncScheduler.enqueueImmediate(this)
             Toast.makeText(this, "Checking Home Assistant control and updates", Toast.LENGTH_SHORT).show()
         }
     }
@@ -1288,7 +1288,7 @@ class MainActivity : AppCompatActivity() {
         if (token.text.toString().isNotBlank()) secureSettings.saveToken(token.text.toString())
         token.text.clear()
         token.hint = "Access token saved — leave blank to keep it"
-        SyncScheduler.enqueue(this)
+        SyncScheduler.enqueueImmediate(this)
         Toast.makeText(this, "Connection saved securely", Toast.LENGTH_SHORT).show()
     }
 
