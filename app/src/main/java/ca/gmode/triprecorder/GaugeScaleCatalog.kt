@@ -1,5 +1,6 @@
 package ca.gmode.triprecorder
 
+import ca.gmode.triprecorder.tracking.GForceMath
 import kotlin.math.ceil
 
 enum class GaugeFaceStyle {
@@ -75,8 +76,11 @@ object GaugeScaleCatalog {
         "roll" -> attitude(gaugeId, GaugeFaceStyle.ATTITUDE_ROLL)
         "attitude" -> attitude(gaugeId, GaugeFaceStyle.ATTITUDE_COMBINED)
         "g_force" -> analog(
-            gaugeId, 0.0, 3.0, 0.5, 0.25, GaugeFaceStyle.SHOCK_VECTOR,
-            zones = listOf(GaugeZone(2.0, 2.5, GaugeZoneRole.CAUTION), GaugeZone(2.5, 3.0, GaugeZoneRole.DANGER)),
+            gaugeId, 0.0, GForceMath.DISPLAY_MAX_G, 0.5, 0.25, GaugeFaceStyle.SHOCK_VECTOR,
+            zones = listOf(
+                GaugeZone(2.0, 2.5, GaugeZoneRole.CAUTION),
+                GaugeZone(2.5, GForceMath.DISPLAY_MAX_G, GaugeZoneRole.DANGER),
+            ),
         )
         "battery" -> analog(
             gaugeId, 0.0, 100.0, 20.0, 10.0,

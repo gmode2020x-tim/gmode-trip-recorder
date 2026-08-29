@@ -24,7 +24,7 @@
 
 ## Dashboard
 
-`LandscapeCockpitView` draws on a 1280 x 592 source grid and applies one uniform fit transform. Reference artwork pieces preserve the physical dashboard frame while live scenes, procedural 3D vehicles, scale ticks, status indicators, labels, and configurable controls are rendered over it. Touches are transformed back to source coordinates. Sensor/UI state is refreshed independently from the one-second trip-summary update so magnetic heading and attitude can remain smooth.
+`LandscapeCockpitView` draws on a 1280 x 592 source grid and applies one uniform fit transform. Reference artwork pieces preserve the physical dashboard frame while live scenes, procedural 3D vehicles, scale ticks, status indicators, labels, and configurable controls are rendered over it. Touches are transformed back to source coordinates. Sensor/UI state is refreshed independently from the one-second trip-summary update so magnetic heading, attitude, and the signed G-Force vector remain smooth.
 
 ## Release variants
 

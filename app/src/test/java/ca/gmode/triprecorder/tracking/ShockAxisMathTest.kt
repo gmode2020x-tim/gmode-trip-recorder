@@ -43,4 +43,29 @@ class ShockAxisMathTest {
         assertEquals(-2.0, vector.upMs2, 0.0)
         assertEquals(kotlin.math.sqrt(14.0), vector.magnitudeMs2, 0.0001)
     }
+
+    @Test
+    fun standardGravityConvertsToOneGWithoutChangingDirection() {
+        val acceleration = VehicleShockVector(
+            forwardMs2 = GForceMath.STANDARD_GRAVITY_MS2,
+            rightMs2 = -GForceMath.STANDARD_GRAVITY_MS2 / 2.0,
+            upMs2 = 0.0,
+        )
+
+        val gForce = GForceMath.fromLinearAcceleration(acceleration)
+
+        assertEquals(1.0, gForce.forwardG, 0.000001)
+        assertEquals(-0.5, gForce.rightG, 0.000001)
+        assertEquals(0.0, gForce.upG, 0.000001)
+        assertEquals(kotlin.math.sqrt(1.25), gForce.magnitudeG, 0.000001)
+    }
+
+    @Test
+    fun displayProgressUsesSignedThreeGScaleAndClampsOnlyTheDrawing() {
+        assertEquals(-1.0, GForceMath.axisProgress(-4.0), 0.0)
+        assertEquals(-0.5, GForceMath.axisProgress(-1.5), 0.0)
+        assertEquals(0.0, GForceMath.axisProgress(0.0), 0.0)
+        assertEquals(0.5, GForceMath.axisProgress(1.5), 0.0)
+        assertEquals(1.0, GForceMath.axisProgress(4.0), 0.0)
+    }
 }

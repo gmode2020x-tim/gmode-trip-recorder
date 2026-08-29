@@ -163,7 +163,7 @@ class DashboardSettings(context: Context) {
             GaugeDefinition("elevation_gain", "Elevation gain"),
             GaugeDefinition("compass", "GPS course"),
             GaugeDefinition("attitude", "3D pitch + roll"),
-            GaugeDefinition("g_force", "Shock axes"),
+            GaugeDefinition("g_force", "G-Force"),
             GaugeDefinition("battery", "Phone battery"),
             GaugeDefinition("gps_sky", "GPS sky + position"),
             GaugeDefinition("pressure", "Station pressure"),

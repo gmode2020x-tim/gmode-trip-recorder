@@ -497,7 +497,7 @@ class MainActivityInstrumentedTest {
                     assertEquals(
                         listOf(
                             "Speed", "Trip time", "Distance", "GPS altitude", "Elevation gain", "GPS course", "Attitude",
-                            "Shock axes", "Phone battery", "GPS Sky", "Station pressure",
+                            "G-Force", "Phone battery", "GPS Sky", "Station pressure",
                         ),
                         cockpit.activeGaugeTitles(),
                     )
@@ -544,9 +544,9 @@ class MainActivityInstrumentedTest {
             CockpitReading("GPS course", "NW", "315°", 315.0 / 360.0, "COURSE OVER GROUND", 315.0, "compass", 315.0),
             CockpitReading("Attitude", "P +12°  R -8°", "", subtitle = "LIVE 3D", gaugeId = "attitude"),
             CockpitReading(
-                "Shock axes",
+                "G-Force",
                 "1.25",
-                "g total",
+                "g",
                 0.42,
                 "X F/B • Y L/R • Z U/D",
                 gaugeId = "g_force",
@@ -589,6 +589,29 @@ class MainActivityInstrumentedTest {
             assertTrue("${sample.title} face should draw an opaque centre", android.graphics.Color.alpha(bitmap.getPixel(640, 278)) > 0)
             bitmap.recycle()
         }
+    }
+
+    @Test
+    fun liveGForceUpdateUsesSignedThreeAxisScaleImmediately() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val cockpit = LandscapeCockpitView(context)
+        cockpit.setState(
+            CockpitState(
+                tripTypeLabel = "OFF ROAD",
+                readings = listOf(CockpitReading("G-Force", "0.00", "g", gaugeId = "g_force")),
+            ),
+        )
+
+        cockpit.setLiveGForce(totalG = 1.5, forwardG = 1.0, rightG = -0.5, upG = 1.0)
+
+        val reading = requireNotNull(cockpit.readingForGauge("g_force"))
+        assertEquals("G-Force", reading.title)
+        assertEquals("1.50", reading.value)
+        assertEquals("g", reading.unit)
+        assertEquals(0.5, reading.progress!!, 0.0)
+        assertEquals(1.0, reading.shockAxes?.forwardG!!, 0.0)
+        assertEquals(-0.5, reading.shockAxes?.rightG!!, 0.0)
+        assertEquals(1.0, reading.shockAxes?.upG!!, 0.0)
     }
 
     @Test

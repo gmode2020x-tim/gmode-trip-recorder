@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Renamed the three-axis shock display to G-Force.
+- Changed the live G-Force vector from a one-second dashboard refresh to direct sensor-rate updates.
+- Added explicit -3 g to +3 g axis endpoints while retaining unclipped raw values in trip data.
+
 ## 2.1.4 - 2026-08-29
 
 - Replaced the scalar shock-peak gauge with a coherent three-axis vehicle shock display: forward/back, right/left, and up/down.

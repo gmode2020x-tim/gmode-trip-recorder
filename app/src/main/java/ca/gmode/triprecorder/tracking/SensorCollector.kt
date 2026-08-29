@@ -41,6 +41,7 @@ class SensorCollector(context: Context) : SensorEventListener {
     private var rollDegrees: Double? = null
     private var magneticHeadingDegrees: Double? = null
     var onOrientationChanged: ((OrientationSnapshot) -> Unit)? = null
+    var onLinearAccelerationChanged: ((VehicleShockVector) -> Unit)? = null
 
     fun start() {
         pressureSensor?.also { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL) }
@@ -101,6 +102,7 @@ class SensorCollector(context: Context) : SensorEventListener {
                     displayRotation = displayRotation,
                 )
                 val linearMagnitude = vehicle.magnitudeMs2
+                onLinearAccelerationChanged?.invoke(vehicle)
                 accelerationSquaredTotal += linearMagnitude * linearMagnitude
                 accelerationSamples += 1
                 if (linearMagnitude > accelerationPeak) {

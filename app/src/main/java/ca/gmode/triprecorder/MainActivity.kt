@@ -63,6 +63,7 @@ import ca.gmode.triprecorder.sync.SyncStatusStore
 import ca.gmode.triprecorder.sync.RemoteControlStore
 import ca.gmode.triprecorder.tracking.DashboardTelemetry
 import ca.gmode.triprecorder.tracking.ForegroundLocationMonitor
+import ca.gmode.triprecorder.tracking.GForceMath
 import ca.gmode.triprecorder.tracking.GaugeDisplayMath
 import ca.gmode.triprecorder.tracking.LevelCalibration
 import ca.gmode.triprecorder.tracking.LiveTelemetry
@@ -497,6 +498,17 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     if (::autoEnabledSwitch.isInitialized) refreshAutoUi()
                 }
+            }
+        }
+        calibrationSensors.onLinearAccelerationChanged = { acceleration ->
+            if (::landscapeCockpit.isInitialized && !showingSettings) {
+                val gForce = GForceMath.fromLinearAcceleration(acceleration)
+                landscapeCockpit.setLiveGForce(
+                    totalG = gForce.magnitudeG,
+                    forwardG = gForce.forwardG,
+                    rightG = gForce.rightG,
+                    upG = gForce.upG,
+                )
             }
         }
     }
@@ -1595,19 +1607,19 @@ class MainActivity : AppCompatActivity() {
                 tripType,
             )
             "g_force" -> {
-                val value = telemetry.accelerationPeakMs2?.div(9.80665)
+                val value = telemetry.accelerationPeakMs2?.div(GForceMath.STANDARD_GRAVITY_MS2)
                 CockpitReading(
-                    title = "Shock axes",
+                    title = "G-Force",
                     value = value?.let { "%.2f".format(it) } ?: "--",
-                    unit = "g total",
+                    unit = "g",
                     progress = GaugeScaleCatalog.progress(id, value, tripType),
                     subtitle = if (value == null) unavailable else "X F/B • Y L/R • Z U/D",
                     gaugeId = id,
                     numericValue = value,
                     shockAxes = ShockAxesReading(
-                        forwardG = telemetry.accelerationPeakXMs2?.div(9.80665),
-                        rightG = telemetry.accelerationPeakYMs2?.div(9.80665),
-                        upG = telemetry.accelerationPeakZMs2?.div(9.80665),
+                        forwardG = telemetry.accelerationPeakXMs2?.div(GForceMath.STANDARD_GRAVITY_MS2),
+                        rightG = telemetry.accelerationPeakYMs2?.div(GForceMath.STANDARD_GRAVITY_MS2),
+                        upG = telemetry.accelerationPeakZMs2?.div(GForceMath.STANDARD_GRAVITY_MS2),
                     ),
                 )
             }

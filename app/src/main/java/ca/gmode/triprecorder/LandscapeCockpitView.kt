@@ -22,6 +22,7 @@ import ca.gmode.triprecorder.settings.SideButtonConfig
 import ca.gmode.triprecorder.settings.SideButtonSettings
 import ca.gmode.triprecorder.settings.SideButtonSlot
 import ca.gmode.triprecorder.settings.DashboardSettings
+import ca.gmode.triprecorder.tracking.GForceMath
 import ca.gmode.triprecorder.tracking.GaugeDisplayMath
 import ca.gmode.triprecorder.tracking.GnssSatelliteObservation
 import ca.gmode.triprecorder.tracking.GnssSignalQuality
@@ -206,6 +207,28 @@ class LandscapeCockpitView(context: Context) : View(context) {
         postInvalidateOnAnimation()
     }
 
+    fun setLiveGForce(
+        totalG: Double,
+        forwardG: Double,
+        rightG: Double,
+        upG: Double,
+    ) {
+        val index = state.readings.indexOfFirst { it.gaugeId == "g_force" }
+        if (index < 0) return
+        val readings = state.readings.toMutableList()
+        readings[index] = readings[index].copy(
+            title = "G-Force",
+            value = "%.2f".format(totalG),
+            unit = "g",
+            progress = GaugeScaleCatalog.progress("g_force", totalG, state.tripTypeLabel),
+            subtitle = "LIVE • X F/B • Y L/R • Z U/D",
+            numericValue = totalG,
+            shockAxes = ShockAxesReading(forwardG, rightG, upG),
+        )
+        state = state.copy(readings = readings)
+        postInvalidateOnAnimation()
+    }
+
     internal fun liveCourseSnapshot(): Pair<Double?, String?> = state.courseDegrees to state.courseSource
 
     internal fun attitudeAlertLabel(): String = when {
@@ -221,6 +244,8 @@ class LandscapeCockpitView(context: Context) : View(context) {
     internal fun activeGaugeTitles(): List<String> = state.readings.map { it.title }
 
     internal fun activeGaugeTitle(): String? = state.readings.getOrNull(selectedGaugeIndex)?.title
+
+    internal fun readingForGauge(gaugeId: String): CockpitReading? = state.readings.firstOrNull { it.gaugeId == gaugeId }
 
     internal fun activeSideButtons(): List<SideButtonConfig> = state.sideButtons
 
@@ -962,7 +987,7 @@ class LandscapeCockpitView(context: Context) : View(context) {
             )
         }
 
-        drawReferenceText(canvas, "PEAK VECTOR", cx, 177f, 12f, Color.LTGRAY, true)
+        drawReferenceText(canvas, "LIVE VECTOR", cx, 177f, 12f, Color.LTGRAY, true)
         val axes = reading.shockAxes
         drawShockAxisBar(canvas, 218f, "X  FWD / BACK", axes?.forwardG, "FWD", "BACK")
         drawShockAxisBar(canvas, 275f, "Y  RIGHT / LEFT", axes?.rightG, "RIGHT", "LEFT")
@@ -1001,20 +1026,22 @@ class LandscapeCockpitView(context: Context) : View(context) {
         paint.color = Color.WHITE
         canvas.drawLine(center, y - 1f, center, y + 15f, paint)
         valueG?.let {
-            val end = center + (it.coerceIn(-SHOCK_AXIS_MAX_G, SHOCK_AXIS_MAX_G) / SHOCK_AXIS_MAX_G *
-                ((right - left) / 2f)).toFloat()
+            val end = center + (GForceMath.axisProgress(it) * ((right - left) / 2f)).toFloat()
             paint.strokeWidth = 7f
             paint.color = color
             canvas.drawLine(center, y + 7f, end, y + 7f, paint)
             paint.style = Paint.Style.FILL
             canvas.drawCircle(end, y + 7f, 4f, paint)
         }
+        val scaleEnd = GForceMath.DISPLAY_MAX_G.toInt()
+        drawReferenceText(canvas, "$negativeDirection -${scaleEnd}g", left, y + 25f, 8f, Color.GRAY, false)
+        drawReferenceText(canvas, "+${scaleEnd}g $positiveDirection", right, y + 25f, 8f, Color.GRAY, false)
     }
 
     private fun drawShockVectorStatus(canvas: Canvas, reading: CockpitReading) {
         val total = reading.numericValue?.let { "%.2f".format(it) } ?: "--"
         drawReferenceText(canvas, "TOTAL $total g", 640f, 398f, 22f, shockValueColor(reading.numericValue), true)
-        drawReferenceText(canvas, "COHERENT PEAK • 1 SECOND WINDOW", 640f, 422f, 11f, Color.LTGRAY, true)
+        drawReferenceText(canvas, "LIVE VECTOR • GRAVITY REMOVED", 640f, 422f, 11f, Color.LTGRAY, true)
     }
 
     private fun shockValueColor(valueG: Double?): Int = when {
@@ -2275,7 +2302,6 @@ class LandscapeCockpitView(context: Context) : View(context) {
         private const val ATTITUDE_TRAIL_MAX_SAMPLES = 12
         private const val ATTITUDE_FRAME_SMOOTHING = 0.24f
         private const val COURSE_SMOOTHING = 0.12f
-        private const val SHOCK_AXIS_MAX_G = 3.0
         private const val SHOCK_DIRECTION_DEADBAND_G = 0.03
         private const val ALERT_FLASH_PERIOD_NANOS = 760_000_000L
         private const val ALERT_FRAME_DELAY_MILLIS = 50L
