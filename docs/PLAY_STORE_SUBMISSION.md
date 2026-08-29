@@ -5,14 +5,14 @@ This document separates completed repository work from manual Play Console actio
 ## Build and signing
 
 - [x] Package: `ca.gmode.triprecorder`
-- [x] Version name/code: `2.1.2` / `20102`
+- [x] Version name/code: `2.1.3` / `20103`
 - [x] Minimum SDK: 29 (Android 10)
 - [x] Compile/target SDK: 36 (Android 16)
 - [x] Release minification and resource shrinking enabled
 - [x] Dedicated ignored upload-keystore support
 - [x] Public upload certificate exported as `play-store/gmode-upload-certificate.pem`
 - [ ] In Play Console, enroll in mandatory Play App Signing and register the upload certificate
-- [ ] Upload `GMODE-Trip-Recorder-v2.1.2-play.aab` to an internal test track first
+- [ ] Upload `GMODE-Trip-Recorder-v2.1.3-play.aab` to an internal test track first
 
 The GitHub sideload APK intentionally has the previous debug signature for in-place v1 upgrades. Never upload the sideload APK to Play.
 
@@ -82,7 +82,7 @@ Google announced a separate minimum-scope declaration for `ACCESS_FINE_LOCATION`
 
 1. Internal test: install from Play, verify clean install, permissions, manual trip, background departure, export, and HA sync.
 2. Closed test if required by the account: meet Google's current tester/duration rules shown in Play Console.
-3. Production: use staged rollout, monitor Android vitals, and retain v2.1.2 artifacts/checksums.
+3. Production: use staged rollout, monitor Android vitals, and retain v2.1.3 artifacts/checksums.
 
 ## Reviewer notes draft
 
@@ -90,4 +90,4 @@ GMODE Trip Recorder works without login. Press START for a manual trip. Backgrou
 
 ## Release notes
 
-Combines GPS satellites, accuracy, and coordinates into a north-up GNSS sky plot with real satellite placement, colour-coded signal strength, fix-use rings, an accuracy radius, speed, altitude, and course. Foreground samples remain display-only; trip recording, Home Assistant synchronization, diagnostics, and automatic recording are unchanged.
+Automatic return-home trips now retain their original stop deadline across app resumes and geofence re-registration, stop through an independent scheduled check, and keep sync diagnostics readable by coalescing routine success events while preserving failures and recoveries.

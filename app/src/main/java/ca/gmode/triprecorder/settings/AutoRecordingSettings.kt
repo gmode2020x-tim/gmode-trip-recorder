@@ -112,9 +112,29 @@ class AutoRecordingStateStore(context: Context) {
         get() = preferences.getString(KEY_ACTIVE_TRIP_ID, null)
         set(value) {
             preferences.edit().apply {
+                val changed = preferences.getString(KEY_ACTIVE_TRIP_ID, null) != value
                 if (value == null) remove(KEY_ACTIVE_TRIP_ID) else putString(KEY_ACTIVE_TRIP_ID, value)
+                if (changed) remove(KEY_RETURN_DWELL_DEADLINE_EPOCH_MS)
             }.apply()
         }
+
+    val returnDwellDeadlineEpochMs: Long?
+        get() = preferences.getLong(KEY_RETURN_DWELL_DEADLINE_EPOCH_MS, 0L).takeIf { it > 0L }
+
+    fun beginReturnDwell(
+        dwellMinutes: Int,
+        nowEpochMs: Long = System.currentTimeMillis(),
+    ): Long? {
+        if (activeAutoTripId == null) return null
+        returnDwellDeadlineEpochMs?.let { return it }
+        val deadline = nowEpochMs + dwellMinutes.coerceIn(1, 120) * 60_000L
+        preferences.edit().putLong(KEY_RETURN_DWELL_DEADLINE_EPOCH_MS, deadline).apply()
+        return deadline
+    }
+
+    fun clearReturnDwell() {
+        preferences.edit().remove(KEY_RETURN_DWELL_DEADLINE_EPOCH_MS).apply()
+    }
 
     fun status(): String = preferences.getString(KEY_STATUS, "Automatic recording is off")
         ?: "Automatic recording is off"
@@ -128,6 +148,7 @@ class AutoRecordingStateStore(context: Context) {
     private companion object {
         const val PREFERENCES = "auto_recording_state"
         const val KEY_ACTIVE_TRIP_ID = "active_auto_trip_id"
+        const val KEY_RETURN_DWELL_DEADLINE_EPOCH_MS = "return_dwell_deadline_epoch_ms"
         const val KEY_STATUS = "status"
     }
 }

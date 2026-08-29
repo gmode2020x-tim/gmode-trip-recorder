@@ -23,6 +23,7 @@ import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import ca.gmode.triprecorder.MainActivity
 import ca.gmode.triprecorder.R
+import ca.gmode.triprecorder.auto.ReturnDwellWorker
 import ca.gmode.triprecorder.data.AppDatabase
 import ca.gmode.triprecorder.data.PhoneSnapshot
 import ca.gmode.triprecorder.data.RecordingRepository
@@ -223,6 +224,7 @@ class TrackingService : LifecycleService() {
             AutoRecordingStateStore(this@TrackingService).let { state ->
                 if (state.activeAutoTripId == stoppedTripId) {
                     state.activeAutoTripId = null
+                    ReturnDwellWorker.cancel(this@TrackingService)
                     state.updateStatus("Automatic trip stopped manually — waiting for the next departure")
                 }
             }

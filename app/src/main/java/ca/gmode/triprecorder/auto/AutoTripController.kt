@@ -18,8 +18,13 @@ class AutoTripController(
     private val startTracking: (Context, String) -> Unit = TrackingService::start,
     private val stopTracking: (Context) -> Unit = TrackingService::stopImmediately,
     private val enqueueSync: (Context) -> Unit = SyncScheduler::enqueue,
+    private val scheduleReturnCheck: (Context, Long) -> Unit = ReturnDwellWorker::scheduleAt,
+    private val cancelReturnCheck: (Context) -> Unit = ReturnDwellWorker::cancel,
+    private val nowEpochMs: () -> Long = System::currentTimeMillis,
 ) {
     suspend fun handleExit(): Boolean {
+        state.clearReturnDwell()
+        cancelReturnCheck(context)
         val config = settings.read()
         if (!config.enabled || !config.hasHomeLocation) return false
         repository.activeTrip()?.let {
@@ -44,18 +49,27 @@ class AutoTripController(
 
     fun handleEnter() {
         val dwell = settings.read().returnDwellMinutes
-        state.updateStatus(
-            if (state.activeAutoTripId == null) {
-                "At home — waiting for the next departure"
-            } else {
-                "Home detected — stops after $dwell minutes inside the zone"
-            },
-        )
+        if (state.activeAutoTripId == null) {
+            state.clearReturnDwell()
+            cancelReturnCheck(context)
+            state.updateStatus("At home — waiting for the next departure")
+            return
+        }
+        val deadline = state.beginReturnDwell(dwell, nowEpochMs()) ?: return
+        scheduleReturnCheck(context, deadline)
+        val remainingMinutes = ((deadline - nowEpochMs()).coerceAtLeast(0L) + 59_999L) / 60_000L
+        state.updateStatus("Home detected — stops in $remainingMinutes minutes if still inside the zone")
     }
 
     suspend fun handleDwell(): Boolean {
         val autoTripId = state.activeAutoTripId ?: run {
+            state.clearReturnDwell()
             state.updateStatus("At home — waiting for the next departure")
+            return false
+        }
+        val deadline = state.returnDwellDeadlineEpochMs
+        if (deadline != null && nowEpochMs() + DEADLINE_TOLERANCE_MS < deadline) {
+            scheduleReturnCheck(context, deadline)
             return false
         }
         val active = repository.activeTrip()
@@ -74,5 +88,6 @@ class AutoTripController(
 
     private companion object {
         val TRIP_TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+        const val DEADLINE_TOLERANCE_MS = 1_000L
     }
 }

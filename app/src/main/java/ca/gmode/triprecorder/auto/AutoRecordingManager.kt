@@ -22,6 +22,7 @@ class AutoRecordingManager(private val context: Context) {
     private val wifiMonitor = HomeWifiMonitor(appContext)
 
     fun refreshRegistration(callback: ((Boolean, String) -> Unit)? = null) {
+        restoreReturnDwellCheck()
         val config = settings.read()
         if (!config.enabled) {
             client.removeGeofences(pendingIntent())
@@ -76,12 +77,19 @@ class AutoRecordingManager(private val context: Context) {
         client.removeGeofences(pendingIntent).addOnCompleteListener {
             client.addGeofences(request, pendingIntent)
                 .addOnSuccessListener {
+                    val returnDeadline = state.returnDwellDeadlineEpochMs
                     val message = if (state.activeAutoTripId == null) {
                         if (config.hasHomeWifi) {
                             "Armed — ${config.homeWifiSsid} plus the ${config.homeRadiusMeters} m GPS zone detect departures"
                         } else {
                             "Armed — starts after leaving the ${config.homeRadiusMeters} m home zone"
                         }
+                    } else if (returnDeadline != null) {
+                        val remainingMinutes = (
+                            (returnDeadline - System.currentTimeMillis())
+                                .coerceAtLeast(0L) + 59_999L
+                            ) / 60_000L
+                        "Home detected — return countdown continues with $remainingMinutes minutes remaining"
                     } else {
                         "Away from home — automatic trip is recording"
                     }
@@ -122,6 +130,16 @@ class AutoRecordingManager(private val context: Context) {
     private fun complete(success: Boolean, message: String, callback: ((Boolean, String) -> Unit)?) {
         state.updateStatus(message)
         callback?.invoke(success, message)
+    }
+
+    private fun restoreReturnDwellCheck() {
+        val deadline = state.returnDwellDeadlineEpochMs
+        if (state.activeAutoTripId != null && deadline != null) {
+            ReturnDwellWorker.scheduleAt(appContext, deadline)
+        } else if (state.activeAutoTripId == null) {
+            state.clearReturnDwell()
+            ReturnDwellWorker.cancel(appContext)
+        }
     }
 
     companion object {

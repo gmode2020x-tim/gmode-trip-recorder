@@ -58,6 +58,8 @@ class AutoTripControllerInstrumentedTest {
         )
         var startedTripId: String? = null
         var serviceStopped = false
+        var now = 1_000_000L
+        val scheduledDeadlines = mutableListOf<Long>()
         val controller = AutoTripController(
             context = context,
             repository = repository,
@@ -66,6 +68,9 @@ class AutoTripControllerInstrumentedTest {
             startTracking = { _, id -> startedTripId = id },
             stopTracking = { serviceStopped = true },
             enqueueSync = {},
+            scheduleReturnCheck = { _, deadline -> scheduledDeadlines += deadline },
+            cancelReturnCheck = {},
+            nowEpochMs = { now },
         )
 
         assertTrue(controller.handleExit())
@@ -75,7 +80,20 @@ class AutoTripControllerInstrumentedTest {
         assertEquals(active?.id, state.activeAutoTripId)
 
         controller.handleEnter()
+        val originalDeadline = state.returnDwellDeadlineEpochMs
+        assertEquals(now + 3 * 60_000L, originalDeadline)
+        assertEquals(listOf(originalDeadline), scheduledDeadlines)
         assertTrue(state.status().contains("3 minutes"))
+
+        now += 60_000L
+        controller.handleEnter()
+        assertEquals(originalDeadline, state.returnDwellDeadlineEpochMs)
+        assertEquals(originalDeadline, scheduledDeadlines.last())
+        assertTrue(state.status().contains("2 minutes"))
+        assertFalse(controller.handleDwell())
+        assertEquals(active?.id, repository.activeTrip()?.id)
+
+        now = requireNotNull(originalDeadline)
         assertTrue(controller.handleDwell())
         assertNull(repository.activeTrip())
         assertNull(state.activeAutoTripId)
@@ -96,11 +114,54 @@ class AutoTripControllerInstrumentedTest {
             startTracking = { _, _ -> throw AssertionError("must not start") },
             stopTracking = {},
             enqueueSync = {},
+            scheduleReturnCheck = { _, _ -> },
+            cancelReturnCheck = {},
         )
 
         assertFalse(controller.handleExit())
         assertEquals("Manual trip", repository.activeTrip()?.title)
         assertNull(state.activeAutoTripId)
+    }
+
+    @Test
+    fun returnDeadlineSurvivesStateStoreRecreationAndClearsOnExit() = runBlocking {
+        settings.save(AutoRecordingConfig(enabled = true, homeLatitude = 44.0, homeLongitude = -79.0))
+        var now = 5_000_000L
+        val controller = AutoTripController(
+            context = context,
+            repository = repository,
+            settings = settings,
+            state = state,
+            startTracking = { _, _ -> },
+            stopTracking = {},
+            enqueueSync = {},
+            scheduleReturnCheck = { _, _ -> },
+            cancelReturnCheck = {},
+            nowEpochMs = { now },
+        )
+
+        assertTrue(controller.handleExit())
+        controller.handleEnter()
+        val originalDeadline = state.returnDwellDeadlineEpochMs
+        assertEquals(originalDeadline, AutoRecordingStateStore(context).returnDwellDeadlineEpochMs)
+
+        now += 90_000L
+        AutoTripController(
+            context = context,
+            repository = repository,
+            settings = settings,
+            state = AutoRecordingStateStore(context),
+            startTracking = { _, _ -> },
+            stopTracking = {},
+            enqueueSync = {},
+            scheduleReturnCheck = { _, _ -> },
+            cancelReturnCheck = {},
+            nowEpochMs = { now },
+        ).handleEnter()
+        assertEquals(originalDeadline, AutoRecordingStateStore(context).returnDwellDeadlineEpochMs)
+
+        assertFalse(controller.handleExit())
+        assertNull(state.returnDwellDeadlineEpochMs)
     }
 
     @Test

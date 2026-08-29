@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.3 - 2026-08-28
+
+- Preserved the original return-home dwell deadline across app resumes, process recreation, and geofence re-registration.
+- Added an independent scheduled return-home check so an automatic trip stops on time without waiting for another GPS callback.
+- Reduced repetitive routine sync logs while retaining setup errors, failures, and the first successful recovery event.
+
 ## 2.1.2 - 2026-08-28
 
 - Combined Coordinates, GPS Accuracy, and GPS Satellites into one automatically migrated GPS Sky gauge.
