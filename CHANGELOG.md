@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.4 - 2026-08-29
+
+- Replaced the scalar shock-peak gauge with a coherent three-axis vehicle shock display: forward/back, right/left, and up/down.
+- Preserved the signed X/Y/Z peak vector through local trip storage, live telemetry, CSV export, and Home Assistant uploads.
+- Added an automatic Room database migration so existing trips and settings remain intact during the update.
+
 ## 2.1.3 - 2026-08-28
 
 - Preserved the original return-home dwell deadline across app resumes, process recreation, and geofence re-registration.

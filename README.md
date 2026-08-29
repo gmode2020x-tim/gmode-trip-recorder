@@ -6,12 +6,12 @@ The v2 cockpit combines a scene-matched procedural 3D vehicle, live pitch and ro
 
 ![GMODE cockpit](play-store/screenshots/01-attitude-dashboard.png)
 
-## Download version 2.1.3
+## Download version 2.1.4
 
-- **Recommended phone package:** [GMODE-Trip-Recorder-v2.1.3-install.zip](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.3/GMODE-Trip-Recorder-v2.1.3-install.zip)
-- **APK only:** [GMODE-Trip-Recorder-v2.1.3-sideload.apk](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.3/GMODE-Trip-Recorder-v2.1.3-sideload.apk)
-- **Checksums:** [GMODE-Trip-Recorder-v2.1.3-SHA256SUMS.txt](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.3/GMODE-Trip-Recorder-v2.1.3-SHA256SUMS.txt)
-- **Release page:** [GMODE Trip Recorder v2.1.3](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/tag/v2.1.3)
+- **Recommended phone package:** [GMODE-Trip-Recorder-v2.1.4-install.zip](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.4/GMODE-Trip-Recorder-v2.1.4-install.zip)
+- **APK only:** [GMODE-Trip-Recorder-v2.1.4-sideload.apk](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.4/GMODE-Trip-Recorder-v2.1.4-sideload.apk)
+- **Checksums:** [GMODE-Trip-Recorder-v2.1.4-SHA256SUMS.txt](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/download/v2.1.4/GMODE-Trip-Recorder-v2.1.4-SHA256SUMS.txt)
+- **Release page:** [GMODE Trip Recorder v2.1.4](https://github.com/gmode2020x-tim/gmode-trip-recorder/releases/tag/v2.1.4)
 
 The ZIP contains the sideload APK, checksum file, this installation guide, and the screenshots used below. The Play `.aab` on the release page is for Google Play Console and cannot be installed directly on a phone.
 
@@ -49,16 +49,16 @@ The ZIP contains the sideload APK, checksum file, this installation guide, and t
 
 The GitHub release has two deliberately different artifacts:
 
-- `GMODE-Trip-Recorder-v2.1.3-sideload.apk` is signed with the existing sideload/debug lineage so it can update the previous GitHub APK without erasing local trips or settings.
-- `GMODE-Trip-Recorder-v2.1.3-play.aab` is signed with the private upload key and is intended only for Google Play Console. Google Play App Signing supplies the distribution signature. Do not try to open the AAB on the phone.
+- `GMODE-Trip-Recorder-v2.1.4-sideload.apk` is signed with the existing sideload/debug lineage so it can update the previous GitHub APK without erasing local trips or settings.
+- `GMODE-Trip-Recorder-v2.1.4-play.aab` is signed with the private upload key and is intended only for Google Play Console. Google Play App Signing supplies the distribution signature. Do not try to open the AAB on the phone.
 
 ### 1. Download and extract
 
 1. Open the **recommended phone package** link above in Chrome or Samsung Internet.
-2. If GitHub shows the release page, expand **Assets** and tap `GMODE-Trip-Recorder-v2.1.3-install.zip`.
+2. If GitHub shows the release page, expand **Assets** and tap `GMODE-Trip-Recorder-v2.1.4-install.zip`.
 3. When the download finishes, open Samsung **My Files > Downloads**.
 4. Tap the ZIP, choose **Extract**, then open the extracted folder.
-5. Tap `GMODE-Trip-Recorder-v2.1.3-sideload.apk`.
+5. Tap `GMODE-Trip-Recorder-v2.1.4-sideload.apk`.
 
 You can skip extraction by downloading the **APK only** link instead.
 
@@ -79,7 +79,7 @@ The same control is available under **Settings > Security and privacy > More sec
 3. Do **not** uninstall the old version first unless you intentionally want to erase app-private trips and settings.
 4. When Android reports **App installed**, tap **Open**.
 
-If Android reports that the package conflicts with an existing app, the installed copy was signed by a different key. Export any required trips, uninstall that incompatible copy, and then install v2.1.3.
+If Android reports that the package conflicts with an existing app, the installed copy was signed by a different key. Export any required trips, uninstall that incompatible copy, and then install v2.1.4.
 
 ### 4. Complete first-run permissions
 
@@ -127,13 +127,13 @@ The six side buttons can be assigned after installation:
 The published SHA-256 file lets you confirm that the download is complete and unchanged. On Windows PowerShell:
 
 ```powershell
-Get-FileHash .\GMODE-Trip-Recorder-v2.1.3-sideload.apk -Algorithm SHA256
+Get-FileHash .\GMODE-Trip-Recorder-v2.1.4-sideload.apk -Algorithm SHA256
 ```
 
 The APK must equal:
 
 ```text
-b25ca3064a942e29b1b27b097d7c18d0c6eab8d38fe7c45bc02555d40ba8cf4d
+d6fcdbc9dd0de1f5a1f8b095fdc400782c48a610247a619de733d264d786ebf9
 ```
 
 ### Installation troubleshooting
