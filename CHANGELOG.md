@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.1.5 - 2026-08-29
 
 - Renamed the three-axis shock display to G-Force.
 - Changed the live G-Force vector from a one-second dashboard refresh to direct sensor-rate updates.
