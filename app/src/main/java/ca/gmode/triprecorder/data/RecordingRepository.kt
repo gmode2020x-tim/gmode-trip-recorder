@@ -11,6 +11,9 @@ data class SensorSnapshot(
     val accelerationRmsMs2: Double?,
     val accelerationPeakMs2: Double?,
     val gyroscopePeakRadS: Double?,
+    val accelerationPeakXMs2: Double? = null,
+    val accelerationPeakYMs2: Double? = null,
+    val accelerationPeakZMs2: Double? = null,
 )
 
 data class PhoneSnapshot(
@@ -76,6 +79,9 @@ class RecordingRepository(private val dao: TripDao) {
             pressureHpa = sensors.pressureHpa,
             accelerationRmsMs2 = sensors.accelerationRmsMs2,
             accelerationPeakMs2 = sensors.accelerationPeakMs2,
+            accelerationPeakXMs2 = sensors.accelerationPeakXMs2,
+            accelerationPeakYMs2 = sensors.accelerationPeakYMs2,
+            accelerationPeakZMs2 = sensors.accelerationPeakZMs2,
             gyroscopePeakRadS = sensors.gyroscopePeakRadS,
             batteryPercent = phone.batteryPercent,
             isCharging = phone.isCharging,

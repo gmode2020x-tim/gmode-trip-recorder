@@ -497,7 +497,7 @@ class MainActivityInstrumentedTest {
                     assertEquals(
                         listOf(
                             "Speed", "Trip time", "Distance", "GPS altitude", "Elevation gain", "GPS course", "Attitude",
-                            "Shock peak", "Phone battery", "GPS Sky", "Station pressure",
+                            "Shock axes", "Phone battery", "GPS Sky", "Station pressure",
                         ),
                         cockpit.activeGaugeTitles(),
                     )
@@ -543,7 +543,16 @@ class MainActivityInstrumentedTest {
             CockpitReading("Elevation gain", "386", "m", 0.77, "ASCENT", gaugeId = "elevation_gain", numericValue = 386.0),
             CockpitReading("GPS course", "NW", "315°", 315.0 / 360.0, "COURSE OVER GROUND", 315.0, "compass", 315.0),
             CockpitReading("Attitude", "P +12°  R -8°", "", subtitle = "LIVE 3D", gaugeId = "attitude"),
-            CockpitReading("Shock peak", "1.25", "g", 0.42, "LINEAR ACCELERATION", gaugeId = "g_force", numericValue = 1.25),
+            CockpitReading(
+                "Shock axes",
+                "1.25",
+                "g total",
+                0.42,
+                "X F/B • Y L/R • Z U/D",
+                gaugeId = "g_force",
+                numericValue = 1.25,
+                shockAxes = ShockAxesReading(0.32, -0.41, 1.13),
+            ),
             CockpitReading("Phone battery", "74", "%", 0.74, "S24", gaugeId = "battery", numericValue = 74.0),
             CockpitReading(
                 "GPS Sky",

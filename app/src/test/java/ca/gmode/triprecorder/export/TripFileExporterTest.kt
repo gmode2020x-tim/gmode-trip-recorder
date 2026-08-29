@@ -63,6 +63,8 @@ class TripFileExporterTest {
         assertTrue(lines.first().startsWith("trip_id,trip_title,trip_type,sequence"))
         assertTrue(lines[1].contains("\"Trip, \"\"quoted\"\"\""))
         assertTrue(lines[1].contains(",1013.25,"))
+        assertTrue(lines.first().contains("acceleration_peak_x_ms2,acceleration_peak_y_ms2,acceleration_peak_z_ms2"))
+        assertTrue(lines[1].contains(",0.11,-0.12,0.13,"))
         assertTrue(lines[1].endsWith(",false"))
     }
 
@@ -108,6 +110,9 @@ class TripFileExporterTest {
         pressureHpa = 1013.25,
         accelerationRmsMs2 = 0.1,
         accelerationPeakMs2 = 0.2,
+        accelerationPeakXMs2 = 0.11,
+        accelerationPeakYMs2 = -0.12,
+        accelerationPeakZMs2 = 0.13,
         gyroscopePeakRadS = 0.03,
         batteryPercent = 75.0,
         isCharging = false,

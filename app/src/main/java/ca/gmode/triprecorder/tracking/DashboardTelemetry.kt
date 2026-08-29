@@ -19,6 +19,12 @@ object DashboardTelemetry {
             pressureHpa = sensors?.pressureHpa ?: base.pressureHpa.takeIf { storedIsCurrent },
             accelerationPeakMs2 = sensors?.accelerationPeakMs2
                 ?: base.accelerationPeakMs2.takeIf { storedIsCurrent },
+            accelerationPeakXMs2 = sensors?.accelerationPeakXMs2
+                ?: base.accelerationPeakXMs2.takeIf { storedIsCurrent },
+            accelerationPeakYMs2 = sensors?.accelerationPeakYMs2
+                ?: base.accelerationPeakYMs2.takeIf { storedIsCurrent },
+            accelerationPeakZMs2 = sensors?.accelerationPeakZMs2
+                ?: base.accelerationPeakZMs2.takeIf { storedIsCurrent },
             batteryPercent = batteryPercent?.toDouble() ?: base.batteryPercent.takeIf { storedIsCurrent },
             pitchDegrees = orientation.pitchDegrees ?: base.pitchDegrees.takeIf { storedIsCurrent },
             rollDegrees = orientation.rollDegrees ?: base.rollDegrees.takeIf { storedIsCurrent },

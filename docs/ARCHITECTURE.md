@@ -3,7 +3,7 @@
 ## Local-first path
 
 1. `TrackingService` runs as a location foreground service while recording.
-2. `ForegroundLocationMonitor` and `SensorCollector` provide display-only GPS/GNSS plus phone telemetry whenever the cockpit is visible, including per-satellite azimuth, elevation, constellation, C/N0, and fix-use state for the GPS Sky gauge; `TrackingService` persists the trip-point telemetry only during a trip.
+2. `ForegroundLocationMonitor` and `SensorCollector` provide display-only GPS/GNSS plus phone telemetry whenever the cockpit is visible, including per-satellite azimuth, elevation, constellation, C/N0, and fix-use state for the GPS Sky gauge. Linear acceleration is sampled in vehicle coordinates and retains the signed X/Y/Z vector from the same total-magnitude peak. `TrackingService` persists trip-point telemetry only during a trip.
 3. `RecordingRepository` writes the trip and points to Room before any network action.
 4. `SyncScheduler` queues WorkManager with a network constraint.
 5. `UploadWorker` sends a dirty trip in batches of up to 500 points.

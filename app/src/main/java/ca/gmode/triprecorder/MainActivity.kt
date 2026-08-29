@@ -1596,7 +1596,20 @@ class MainActivity : AppCompatActivity() {
             )
             "g_force" -> {
                 val value = telemetry.accelerationPeakMs2?.div(9.80665)
-                reading(id, "Shock peak", value?.let { "%.2f".format(it) } ?: "--", "g", value, if (value == null) unavailable else "LINEAR ACCELERATION")
+                CockpitReading(
+                    title = "Shock axes",
+                    value = value?.let { "%.2f".format(it) } ?: "--",
+                    unit = "g total",
+                    progress = GaugeScaleCatalog.progress(id, value, tripType),
+                    subtitle = if (value == null) unavailable else "X F/B • Y L/R • Z U/D",
+                    gaugeId = id,
+                    numericValue = value,
+                    shockAxes = ShockAxesReading(
+                        forwardG = telemetry.accelerationPeakXMs2?.div(9.80665),
+                        rightG = telemetry.accelerationPeakYMs2?.div(9.80665),
+                        upG = telemetry.accelerationPeakZMs2?.div(9.80665),
+                    ),
+                )
             }
             "battery" -> {
                 val value = telemetry.batteryPercent

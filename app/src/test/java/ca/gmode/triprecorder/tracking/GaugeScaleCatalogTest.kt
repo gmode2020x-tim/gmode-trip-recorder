@@ -70,4 +70,14 @@ class GaugeScaleCatalogTest {
         assertEquals(1_050.0, spec.maximum, 0.0)
         assertEquals(10.0, spec.minorStep!!, 0.0)
     }
+
+    @Test
+    fun shockGaugeUsesThreeAxisFaceWithTotalMagnitudeScale() {
+        val spec = GaugeScaleCatalog.forGauge("g_force", 1.5, "off_road")
+
+        assertEquals(GaugeFaceStyle.SHOCK_VECTOR, spec.faceStyle)
+        assertEquals(0.0, spec.minimum, 0.0)
+        assertEquals(3.0, spec.maximum, 0.0)
+        assertEquals(listOf("0", "0.5", "1", "1.5", "2", "2.5", "3"), spec.majorTicks.map { it.label })
+    }
 }

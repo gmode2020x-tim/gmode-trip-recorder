@@ -54,6 +54,7 @@ class UploadWorkerInstrumentedTest {
         seedTrip(1_205)
         val receivedIds = mutableListOf<String>()
         val receivedBatchSizes = mutableListOf<Int>()
+        val receivedAxisVectors = mutableListOf<Triple<Double, Double, Double>>()
         server = MockWebServer().apply {
             dispatcher = object : Dispatcher() {
                 override fun dispatch(request: RecordedRequest): MockResponse {
@@ -63,6 +64,14 @@ class UploadWorkerInstrumentedTest {
                     val payload = JSONObject(request.body.readUtf8())
                     val points = payload.getJSONArray("points")
                     val ids = (0 until points.length()).map { points.getJSONObject(it).getString("pointId") }
+                    if (points.length() > 0) {
+                        val first = points.getJSONObject(0)
+                        receivedAxisVectors += Triple(
+                            first.getDouble("accelerationPeakXMs2"),
+                            first.getDouble("accelerationPeakYMs2"),
+                            first.getDouble("accelerationPeakZMs2"),
+                        )
+                    }
                     synchronized(receivedIds) {
                         receivedIds += ids
                         receivedBatchSizes += ids.size
@@ -82,6 +91,7 @@ class UploadWorkerInstrumentedTest {
         assertResultType(ListenableWorker.Result.success(), result)
         assertEquals(listOf(500, 500, 205), receivedBatchSizes)
         assertEquals(1_205, receivedIds.distinct().size)
+        assertTrue(receivedAxisVectors.all { it == Triple(0.11, -0.12, 0.13) })
         assertEquals(0, database.tripDao().getTotalPendingPointCount())
         assertEquals(false, database.tripDao().getTrip(TRIP_ID)?.needsSync)
     }
@@ -202,6 +212,9 @@ class UploadWorkerInstrumentedTest {
         pressureHpa = 1008.0,
         accelerationRmsMs2 = 0.1,
         accelerationPeakMs2 = 0.2,
+        accelerationPeakXMs2 = 0.11,
+        accelerationPeakYMs2 = -0.12,
+        accelerationPeakZMs2 = 0.13,
         gyroscopePeakRadS = 0.03,
         batteryPercent = 75.0,
         isCharging = false,

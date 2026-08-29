@@ -24,6 +24,9 @@ data class LiveTelemetry(
     val accuracyMeters: Double? = null,
     val pressureHpa: Double? = null,
     val accelerationPeakMs2: Double? = null,
+    val accelerationPeakXMs2: Double? = null,
+    val accelerationPeakYMs2: Double? = null,
+    val accelerationPeakZMs2: Double? = null,
     val batteryPercent: Double? = null,
     val satelliteCount: Int? = null,
     val gnssSatellites: List<GnssSatelliteObservation> = emptyList(),
@@ -56,6 +59,9 @@ class LiveTelemetryStore(context: Context) {
             putNullableDouble(KEY_ACCURACY, point.accuracyMeters)
             putNullableDouble(KEY_PRESSURE, point.pressureHpa)
             putNullableDouble(KEY_ACCELERATION, point.accelerationPeakMs2)
+            putNullableDouble(KEY_ACCELERATION_X, point.accelerationPeakXMs2)
+            putNullableDouble(KEY_ACCELERATION_Y, point.accelerationPeakYMs2)
+            putNullableDouble(KEY_ACCELERATION_Z, point.accelerationPeakZMs2)
             putNullableDouble(KEY_BATTERY, point.batteryPercent)
             if (point.satelliteCount == null) remove(KEY_SATELLITES) else putInt(KEY_SATELLITES, point.satelliteCount)
             putNullableDouble(KEY_PITCH, orientation.pitchDegrees)
@@ -76,6 +82,9 @@ class LiveTelemetryStore(context: Context) {
         accuracyMeters = preferences.getDouble(KEY_ACCURACY),
         pressureHpa = preferences.getDouble(KEY_PRESSURE),
         accelerationPeakMs2 = preferences.getDouble(KEY_ACCELERATION),
+        accelerationPeakXMs2 = preferences.getDouble(KEY_ACCELERATION_X),
+        accelerationPeakYMs2 = preferences.getDouble(KEY_ACCELERATION_Y),
+        accelerationPeakZMs2 = preferences.getDouble(KEY_ACCELERATION_Z),
         batteryPercent = preferences.getDouble(KEY_BATTERY),
         satelliteCount = preferences.getInt(KEY_SATELLITES, -1).takeIf { it >= 0 },
         pitchDegrees = preferences.getDouble(KEY_PITCH),
@@ -107,6 +116,9 @@ class LiveTelemetryStore(context: Context) {
         private const val KEY_ACCURACY = "accuracy_meters"
         private const val KEY_PRESSURE = "pressure_hpa"
         private const val KEY_ACCELERATION = "acceleration_peak"
+        private const val KEY_ACCELERATION_X = "acceleration_peak_x"
+        private const val KEY_ACCELERATION_Y = "acceleration_peak_y"
+        private const val KEY_ACCELERATION_Z = "acceleration_peak_z"
         private const val KEY_BATTERY = "battery_percent"
         private const val KEY_SATELLITES = "satellites"
         private const val KEY_PITCH = "pitch_degrees"

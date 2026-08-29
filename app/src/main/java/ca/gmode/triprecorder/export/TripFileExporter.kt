@@ -106,7 +106,8 @@ object TripFileExporter {
         append(
             "trip_id,trip_title,trip_type,sequence,recorded_at,latitude,longitude,accuracy_meters," +
                 "altitude_meters,vertical_accuracy_meters,speed_mps,bearing_degrees,pressure_hpa," +
-                "acceleration_rms_ms2,acceleration_peak_ms2,gyroscope_peak_rad_s,battery_percent," +
+                "acceleration_rms_ms2,acceleration_peak_ms2,acceleration_peak_x_ms2," +
+                "acceleration_peak_y_ms2,acceleration_peak_z_ms2,gyroscope_peak_rad_s,battery_percent," +
                 "is_charging,network_type,satellite_count,synced\n",
         )
         points.forEach { point ->
@@ -116,7 +117,9 @@ object TripFileExporter {
                     number(point.latitude), number(point.longitude), optional(point.accuracyMeters),
                     optional(point.altitudeMeters), optional(point.verticalAccuracyMeters), optional(point.speedMps),
                     optional(point.bearingDegrees), optional(point.pressureHpa), optional(point.accelerationRmsMs2),
-                    optional(point.accelerationPeakMs2), optional(point.gyroscopePeakRadS), optional(point.batteryPercent),
+                    optional(point.accelerationPeakMs2), optional(point.accelerationPeakXMs2),
+                    optional(point.accelerationPeakYMs2), optional(point.accelerationPeakZMs2),
+                    optional(point.gyroscopePeakRadS), optional(point.batteryPercent),
                     point.isCharging.toString(), csv(point.networkType), point.satelliteCount?.toString().orEmpty(),
                     point.synced.toString(),
                 ).joinToString(","),

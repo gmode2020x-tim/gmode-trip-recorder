@@ -67,6 +67,9 @@ android {
     buildFeatures {
         buildConfig = true
     }
+    sourceSets {
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    }
 }
 
 ksp {
@@ -91,6 +94,7 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:core-ktx:1.6.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.room:room-testing:2.6.1")
     androidTestImplementation("androidx.work:work-testing:2.10.0")
     androidTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }

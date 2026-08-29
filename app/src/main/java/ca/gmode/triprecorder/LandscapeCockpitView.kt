@@ -42,6 +42,7 @@ data class CockpitReading(
     val gaugeId: String = "",
     val numericValue: Double? = null,
     val gpsSky: GpsSkyReading? = null,
+    val shockAxes: ShockAxesReading? = null,
 )
 
 data class GpsSkyReading(
@@ -52,6 +53,12 @@ data class GpsSkyReading(
     val speedKph: Double?,
     val courseDegrees: Double?,
     val satellites: List<GnssSatelliteObservation>,
+)
+
+data class ShockAxesReading(
+    val forwardG: Double?,
+    val rightG: Double?,
+    val upG: Double?,
 )
 
 data class CockpitState(
@@ -304,6 +311,8 @@ class LandscapeCockpitView(context: Context) : View(context) {
             drawAttitudeStatus(canvas)
         } else if (reading.gaugeId == "gps_sky") {
             drawGpsSkyStatus(canvas, reading.gpsSky)
+        } else if (reading.gaugeId == "g_force") {
+            drawShockVectorStatus(canvas, reading)
         } else {
             drawReferenceText(canvas, reading.value, 640f, 402f, valueSize, palette.accent, true)
             if (reading.unit.isNotBlank()) drawReferenceText(canvas, reading.unit, 640f, 426f, 13f, Color.LTGRAY, false)
@@ -414,6 +423,7 @@ class LandscapeCockpitView(context: Context) : View(context) {
             } else {
                 drawCoordinateGrid(canvas)
             }
+            GaugeFaceStyle.SHOCK_VECTOR -> drawShockVectorGauge(canvas, reading, spec)
             else -> drawScaledGaugeMarks(canvas, reading, spec)
         }
     }
@@ -913,6 +923,105 @@ class LandscapeCockpitView(context: Context) : View(context) {
             paint.style = Paint.Style.FILL
             canvas.drawCircle(cx, cy, 8f, paint)
         }
+    }
+
+    private fun drawShockVectorGauge(canvas: Canvas, reading: CockpitReading, spec: GaugeScaleSpec) {
+        val cx = 640f
+        val cy = 278f
+        val radius = 154f
+        val oval = RectF(cx - radius, cy - radius, cx + radius, cy + radius)
+        paint.shader = null
+        paint.style = Paint.Style.STROKE
+        paint.strokeCap = Paint.Cap.BUTT
+        paint.strokeWidth = 7f
+        paint.color = Color.argb(190, 35, 35, 35)
+        canvas.drawArc(oval, spec.startAngle, spec.sweepAngle, false, paint)
+        spec.zones.forEach { zone ->
+            val start = spec.startAngle + spec.progress(zone.startValue)!!.toFloat() * spec.sweepAngle
+            val sweep = (spec.progress(zone.endValue)!! - spec.progress(zone.startValue)!!).toFloat() * spec.sweepAngle
+            paint.color = gaugeZoneColor(zone.role)
+            canvas.drawArc(oval, start, sweep, false, paint)
+        }
+        reading.progress?.let { progress ->
+            paint.strokeCap = Paint.Cap.ROUND
+            paint.strokeWidth = 4f
+            paint.color = shockValueColor(reading.numericValue)
+            canvas.drawArc(oval, spec.startAngle, progress.coerceIn(0.0, 1.0).toFloat() * spec.sweepAngle, false, paint)
+        }
+        spec.majorTicks.forEach { tick ->
+            val angle = spec.startAngle + spec.progress(tick.value)!!.toFloat() * spec.sweepAngle
+            val radians = Math.toRadians(angle.toDouble())
+            drawReferenceText(
+                canvas,
+                tick.label,
+                cx + cos(radians).toFloat() * 126f,
+                cy + sin(radians).toFloat() * 126f + 4f,
+                10f,
+                Color.LTGRAY,
+                false,
+            )
+        }
+
+        drawReferenceText(canvas, "PEAK VECTOR", cx, 177f, 12f, Color.LTGRAY, true)
+        val axes = reading.shockAxes
+        drawShockAxisBar(canvas, 218f, "X  FWD / BACK", axes?.forwardG, "FWD", "BACK")
+        drawShockAxisBar(canvas, 275f, "Y  RIGHT / LEFT", axes?.rightG, "RIGHT", "LEFT")
+        drawShockAxisBar(canvas, 332f, "Z  UP / DOWN", axes?.upG, "UP", "DOWN")
+    }
+
+    private fun drawShockAxisBar(
+        canvas: Canvas,
+        y: Float,
+        label: String,
+        valueG: Double?,
+        positiveDirection: String,
+        negativeDirection: String,
+    ) {
+        val left = 548f
+        val right = 732f
+        val center = (left + right) / 2f
+        val color = shockValueColor(valueG?.let { kotlin.math.abs(it) })
+        val direction = when {
+            valueG == null -> "--"
+            valueG > SHOCK_DIRECTION_DEADBAND_G -> positiveDirection
+            valueG < -SHOCK_DIRECTION_DEADBAND_G -> negativeDirection
+            else -> "CENTER"
+        }
+        val value = valueG?.let { "%+.2f g  %s".format(it, direction) } ?: "-- g"
+        drawReferenceText(canvas, label, 582f, y - 10f, 11f, Color.WHITE, true)
+        drawReferenceText(canvas, value, 698f, y - 10f, 11f, color, true)
+
+        paint.shader = null
+        paint.strokeCap = Paint.Cap.ROUND
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 7f
+        paint.color = Color.parseColor("#303030")
+        canvas.drawLine(left, y + 7f, right, y + 7f, paint)
+        paint.strokeWidth = 1.5f
+        paint.color = Color.WHITE
+        canvas.drawLine(center, y - 1f, center, y + 15f, paint)
+        valueG?.let {
+            val end = center + (it.coerceIn(-SHOCK_AXIS_MAX_G, SHOCK_AXIS_MAX_G) / SHOCK_AXIS_MAX_G *
+                ((right - left) / 2f)).toFloat()
+            paint.strokeWidth = 7f
+            paint.color = color
+            canvas.drawLine(center, y + 7f, end, y + 7f, paint)
+            paint.style = Paint.Style.FILL
+            canvas.drawCircle(end, y + 7f, 4f, paint)
+        }
+    }
+
+    private fun drawShockVectorStatus(canvas: Canvas, reading: CockpitReading) {
+        val total = reading.numericValue?.let { "%.2f".format(it) } ?: "--"
+        drawReferenceText(canvas, "TOTAL $total g", 640f, 398f, 22f, shockValueColor(reading.numericValue), true)
+        drawReferenceText(canvas, "COHERENT PEAK • 1 SECOND WINDOW", 640f, 422f, 11f, Color.LTGRAY, true)
+    }
+
+    private fun shockValueColor(valueG: Double?): Int = when {
+        valueG == null -> Color.LTGRAY
+        valueG >= 2.5 -> Color.parseColor("#E5091B")
+        valueG >= 2.0 -> Color.parseColor("#FFB000")
+        else -> palette.accent
     }
 
     private fun drawDialTick(canvas: Canvas, cx: Float, cy: Float, radius: Float, angle: Float, length: Float, width: Float, color: Int) {
@@ -2166,6 +2275,8 @@ class LandscapeCockpitView(context: Context) : View(context) {
         private const val ATTITUDE_TRAIL_MAX_SAMPLES = 12
         private const val ATTITUDE_FRAME_SMOOTHING = 0.24f
         private const val COURSE_SMOOTHING = 0.12f
+        private const val SHOCK_AXIS_MAX_G = 3.0
+        private const val SHOCK_DIRECTION_DEADBAND_G = 0.03
         private const val ALERT_FLASH_PERIOD_NANOS = 760_000_000L
         private const val ALERT_FRAME_DELAY_MILLIS = 50L
         private const val DEFAULT_CAMERA_ELEVATION = 20f

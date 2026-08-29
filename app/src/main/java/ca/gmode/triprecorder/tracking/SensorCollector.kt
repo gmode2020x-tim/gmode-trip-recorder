@@ -9,7 +9,6 @@ import android.hardware.display.DisplayManager
 import android.view.Display
 import android.view.Surface
 import ca.gmode.triprecorder.data.SensorSnapshot
-import kotlin.math.abs
 import kotlin.math.sqrt
 
 data class OrientationSnapshot(
@@ -32,7 +31,12 @@ class SensorCollector(context: Context) : SensorEventListener {
     private var accelerationSquaredTotal = 0.0
     private var accelerationSamples = 0
     private var accelerationPeak = 0.0
+    private var accelerationPeakX = 0.0
+    private var accelerationPeakY = 0.0
+    private var accelerationPeakZ = 0.0
     private var gyroscopePeak = 0.0
+    private val gravityEstimate = DoubleArray(3)
+    private var gravityEstimateReady = false
     private var pitchDegrees: Double? = null
     private var rollDegrees: Double? = null
     private var magneticHeadingDegrees: Double? = null
@@ -40,7 +44,7 @@ class SensorCollector(context: Context) : SensorEventListener {
 
     fun start() {
         pressureSensor?.also { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL) }
-        accelerationSensor?.also { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI) }
+        accelerationSensor?.also { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME) }
         gyroscopeSensor?.also { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI) }
         rotationVectorSensor?.also { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI) }
     }
@@ -60,12 +64,18 @@ class SensorCollector(context: Context) : SensorEventListener {
             },
             accelerationPeakMs2 = accelerationPeak.takeIf { accelerationSamples > 0 },
             gyroscopePeakRadS = gyroscopePeak.takeIf { gyroscopePeak > 0 },
+            accelerationPeakXMs2 = accelerationPeakX.takeIf { accelerationSamples > 0 },
+            accelerationPeakYMs2 = accelerationPeakY.takeIf { accelerationSamples > 0 },
+            accelerationPeakZMs2 = accelerationPeakZ.takeIf { accelerationSamples > 0 },
         )
         pressureTotal = 0.0
         pressureSamples = 0
         accelerationSquaredTotal = 0.0
         accelerationSamples = 0
         accelerationPeak = 0.0
+        accelerationPeakX = 0.0
+        accelerationPeakY = 0.0
+        accelerationPeakZ = 0.0
         gyroscopePeak = 0.0
         return snapshot
     }
@@ -82,15 +92,23 @@ class SensorCollector(context: Context) : SensorEventListener {
             }
 
             Sensor.TYPE_LINEAR_ACCELERATION, Sensor.TYPE_ACCELEROMETER -> {
-                val magnitude = vectorMagnitude(event.values)
-                val linearMagnitude = if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-                    abs(magnitude - SensorManager.GRAVITY_EARTH)
-                } else {
-                    magnitude
-                }
+                val linear = linearAcceleration(event)
+                val displayRotation = displayManager.getDisplay(Display.DEFAULT_DISPLAY)?.rotation ?: Surface.ROTATION_90
+                val vehicle = ShockAxisMath.toVehicleAxes(
+                    rawXMs2 = linear[0],
+                    rawYMs2 = linear[1],
+                    rawZMs2 = linear[2],
+                    displayRotation = displayRotation,
+                )
+                val linearMagnitude = vehicle.magnitudeMs2
                 accelerationSquaredTotal += linearMagnitude * linearMagnitude
                 accelerationSamples += 1
-                accelerationPeak = maxOf(accelerationPeak, linearMagnitude)
+                if (linearMagnitude > accelerationPeak) {
+                    accelerationPeak = linearMagnitude
+                    accelerationPeakX = vehicle.forwardMs2
+                    accelerationPeakY = vehicle.rightMs2
+                    accelerationPeakZ = vehicle.upMs2
+                }
             }
 
             Sensor.TYPE_GYROSCOPE -> gyroscopePeak = maxOf(gyroscopePeak, vectorMagnitude(event.values))
@@ -131,7 +149,28 @@ class SensorCollector(context: Context) : SensorEventListener {
         return if (SensorManager.remapCoordinateSystem(rotationMatrix, axisX, axisY, remapped)) remapped else rotationMatrix
     }
 
+    private fun linearAcceleration(event: SensorEvent): DoubleArray {
+        if (event.sensor.type == Sensor.TYPE_LINEAR_ACCELERATION) {
+            return DoubleArray(3) { index -> event.values[index].toDouble() }
+        }
+        if (!gravityEstimateReady) {
+            repeat(3) { index -> gravityEstimate[index] = event.values[index].toDouble() }
+            gravityEstimateReady = true
+            return DoubleArray(3)
+        }
+        return DoubleArray(3) { index ->
+            val raw = event.values[index].toDouble()
+            gravityEstimate[index] = GRAVITY_FILTER_ALPHA * gravityEstimate[index] +
+                (1.0 - GRAVITY_FILTER_ALPHA) * raw
+            raw - gravityEstimate[index]
+        }
+    }
+
     private fun vectorMagnitude(values: FloatArray): Double = sqrt(
         values.take(3).sumOf { value -> value.toDouble() * value.toDouble() },
     )
+
+    private companion object {
+        const val GRAVITY_FILTER_ALPHA = 0.8
+    }
 }

@@ -11,6 +11,7 @@ enum class GaugeFaceStyle {
     COURSE,
     QUALITY,
     INFO,
+    SHOCK_VECTOR,
 }
 
 enum class GaugeZoneRole { DANGER, CAUTION, GOOD }
@@ -74,7 +75,7 @@ object GaugeScaleCatalog {
         "roll" -> attitude(gaugeId, GaugeFaceStyle.ATTITUDE_ROLL)
         "attitude" -> attitude(gaugeId, GaugeFaceStyle.ATTITUDE_COMBINED)
         "g_force" -> analog(
-            gaugeId, 0.0, 3.0, 0.5, 0.25,
+            gaugeId, 0.0, 3.0, 0.5, 0.25, GaugeFaceStyle.SHOCK_VECTOR,
             zones = listOf(GaugeZone(2.0, 2.5, GaugeZoneRole.CAUTION), GaugeZone(2.5, 3.0, GaugeZoneRole.DANGER)),
         )
         "battery" -> analog(
