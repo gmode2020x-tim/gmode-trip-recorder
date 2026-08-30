@@ -100,6 +100,24 @@ private data class DashboardPhoneStatus(
     val batteryTemperatureC: Double?,
 )
 
+private enum class SettingsSaveSection {
+    AUTOMATIC,
+    TRIMMING,
+}
+
+internal fun trimmingSettingsSavedMessage(
+    config: AutoRecordingConfig,
+    homeDetectionError: String? = null,
+): String {
+    val saved = "Trimming saved — stationary radius: ${config.stationaryRadiusMeters} m."
+    val radii = when {
+        config.enabled -> "$saved Auto-start home radius: ${config.homeRadiusMeters} m."
+        config.stopManualTripsAtHome -> "$saved Manual home-stop radius: ${config.homeRadiusMeters} m."
+        else -> saved
+    }
+    return homeDetectionError?.let { "$radii Home detection: $it" } ?: radii
+}
+
 class MainActivity : AppCompatActivity() {
     private lateinit var repository: RecordingRepository
     private lateinit var secureSettings: SecureSettings
@@ -168,6 +186,7 @@ class MainActivity : AppCompatActivity() {
     private var captureHomeAfterPermission = false
     private var captureWifiAfterPermission = false
     private var saveAutoAfterPermission = false
+    private var pendingSettingsSaveSection = SettingsSaveSection.AUTOMATIC
     private var levelCalibrationInProgress = false
 
     private val permissionLauncher = registerForActivityResult(
@@ -178,7 +197,7 @@ class MainActivity : AppCompatActivity() {
         if (locationGranted && startAfterPermission) startRecordingWithNotificationPermission(requestedTripType)
         if (locationGranted && captureHomeAfterPermission) captureHomeLocation()
         if (locationGranted && captureWifiAfterPermission) captureCurrentHomeWifi()
-        if (locationGranted && saveAutoAfterPermission) saveAutoSettings()
+        if (locationGranted && saveAutoAfterPermission) saveAutoSettings(pendingSettingsSaveSection)
         if (locationGranted) foregroundLocationMonitor.start()
         startAfterPermission = false
         requestedTripType = null
@@ -753,7 +772,7 @@ class MainActivity : AppCompatActivity() {
                 stationaryTrimSwitch,
                 stopManualAtHomeSwitch,
                 horizontalViews(
-                    labeledInput("STOP RADIUS (M)", stationaryRadiusInput),
+                    labeledInput("STATIONARY RADIUS (M)", stationaryRadiusInput),
                     labeledInput("STATIONARY SPEED (KM/H)", stationarySpeedInput),
                 ),
                 horizontalViews(
@@ -990,8 +1009,8 @@ class MainActivity : AppCompatActivity() {
         chooseWifi.setOnClickListener {
             wifiPanelLauncher.launch(Intent(Settings.Panel.ACTION_WIFI))
         }
-        saveAutomatic.setOnClickListener { saveAutoSettings() }
-        saveTrimming.setOnClickListener { saveAutoSettings() }
+        saveAutomatic.setOnClickListener { saveAutoSettings(SettingsSaveSection.AUTOMATIC) }
+        saveTrimming.setOnClickListener { saveAutoSettings(SettingsSaveSection.TRIMMING) }
         locationPermission.setOnClickListener { openAppLocationSettings() }
         saveTheme.setOnClickListener { saveAppearance(usePresetAccent = false) }
         usePresetColor.setOnClickListener { saveAppearance(usePresetAccent = true) }
@@ -1226,10 +1245,11 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
-    private fun saveAutoSettings() {
+    private fun saveAutoSettings(section: SettingsSaveSection = SettingsSaveSection.AUTOMATIC) {
         val homeDetectionRequested = autoEnabledSwitch.isChecked || stopManualAtHomeSwitch.isChecked
         if (homeDetectionRequested && !hasFineLocation()) {
             saveAutoAfterPermission = true
+            pendingSettingsSaveSection = section
             requestForegroundLocationPermissions()
             return
         }
@@ -1274,10 +1294,18 @@ class MainActivity : AppCompatActivity() {
             openAppLocationSettings()
             return
         }
-        autoManager.refreshRegistration { _, message ->
+        autoManager.refreshRegistration { success, message ->
             runOnUiThread {
                 refreshAutoUi()
-                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+                val confirmation = if (section == SettingsSaveSection.TRIMMING) {
+                    trimmingSettingsSavedMessage(
+                        config,
+                        homeDetectionError = message.takeIf { homeDetectionRequested && !success },
+                    )
+                } else {
+                    message
+                }
+                Toast.makeText(this, confirmation, Toast.LENGTH_LONG).show()
             }
         }
     }
