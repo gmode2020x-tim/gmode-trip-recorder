@@ -109,7 +109,8 @@ internal fun trimmingSettingsSavedMessage(
     config: AutoRecordingConfig,
     homeDetectionError: String? = null,
 ): String {
-    val saved = "Trimming saved — stationary radius: ${config.stationaryRadiusMeters} m."
+    val autoPause = if (config.stationaryAutoPauseEnabled && config.stationaryTrimEnabled) "on" else "off"
+    val saved = "Trimming saved — stationary radius: ${config.stationaryRadiusMeters} m; auto-pause: $autoPause."
     val radii = when {
         config.enabled -> "$saved Auto-start home radius: ${config.homeRadiusMeters} m."
         config.stopManualTripsAtHome -> "$saved Manual home-stop radius: ${config.homeRadiusMeters} m."
@@ -173,6 +174,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var minimumDistanceInput: EditText
     private lateinit var autoTripType: Spinner
     private lateinit var stationaryTrimSwitch: MaterialSwitch
+    private lateinit var stationaryAutoPauseSwitch: MaterialSwitch
     private lateinit var stopManualAtHomeSwitch: MaterialSwitch
     private lateinit var stationaryRadiusInput: EditText
     private lateinit var stationaryPauseInput: EditText
@@ -708,6 +710,18 @@ class MainActivity : AppCompatActivity() {
             thumbTintList = checkedStateList(ORANGE, Color.parseColor("#777777"))
             trackTintList = checkedStateList(palette.activeSurface, Color.parseColor("#333333"))
         }
+        stationaryAutoPauseSwitch = MaterialSwitch(this).apply {
+            text = "AUTO-PAUSE WHILE STATIONARY"
+            textSize = 14f
+            setTextColor(Color.WHITE)
+            isChecked = automaticConfig.stationaryAutoPauseEnabled
+            thumbTintList = checkedStateList(ORANGE, Color.parseColor("#777777"))
+            trackTintList = checkedStateList(palette.activeSurface, Color.parseColor("#333333"))
+        }
+        stationaryAutoPauseSwitch.isEnabled = stationaryTrimSwitch.isChecked
+        stationaryTrimSwitch.setOnCheckedChangeListener { _, enabled ->
+            stationaryAutoPauseSwitch.isEnabled = enabled
+        }
         stopManualAtHomeSwitch = MaterialSwitch(this).apply {
             text = "STOP MANUAL TRIPS AT HOME"
             textSize = 14f
@@ -770,6 +784,7 @@ class MainActivity : AppCompatActivity() {
             card(
                 "STATIONARY TRIMMING",
                 stationaryTrimSwitch,
+                stationaryAutoPauseSwitch,
                 stopManualAtHomeSwitch,
                 horizontalViews(
                     labeledInput("STATIONARY RADIUS (M)", stationaryRadiusInput),
@@ -781,7 +796,7 @@ class MainActivity : AppCompatActivity() {
                 ),
                 saveTrimming,
                 text(
-                    "Raw GPS points are always retained. Trip statistics and exports omit stationary periods; stops longer than the split delay become separate route legs. Manual home stopping uses the home radius and return delay above.",
+                    "Automatic trips pause telemetry after the stationary delay and use a low-power movement watch until driving resumes. Raw GPS points are retained; stops longer than the split delay become separate route legs. Manual home stopping uses the home radius and return delay above.",
                     11f,
                     MUTED,
                 ),
@@ -1271,6 +1286,7 @@ class MainActivity : AppCompatActivity() {
             minimumDistanceMeters = minimumDistanceInput.intValue(AutoRecordingConfig.DEFAULT_MINIMUM_DISTANCE_METERS),
             tripType = TRIP_TYPE_VALUES[autoTripType.selectedItemPosition],
             stationaryTrimEnabled = stationaryTrimSwitch.isChecked,
+            stationaryAutoPauseEnabled = stationaryAutoPauseSwitch.isChecked,
             stationaryRadiusMeters = stationaryRadiusInput.intValue(
                 AutoRecordingConfig.DEFAULT_STATIONARY_RADIUS_METERS,
             ),
@@ -1343,6 +1359,8 @@ class MainActivity : AppCompatActivity() {
         locationIntervalInput.setText(config.locationIntervalSeconds.toString())
         minimumDistanceInput.setText(config.minimumDistanceMeters.toString())
         stationaryTrimSwitch.isChecked = config.stationaryTrimEnabled
+        stationaryAutoPauseSwitch.isChecked = config.stationaryAutoPauseEnabled
+        stationaryAutoPauseSwitch.isEnabled = config.stationaryTrimEnabled
         stopManualAtHomeSwitch.isChecked = config.stopManualTripsAtHome
         stationaryRadiusInput.setText(config.stationaryRadiusMeters.toString())
         stationaryPauseInput.setText(config.stationaryPauseMinutes.toString())

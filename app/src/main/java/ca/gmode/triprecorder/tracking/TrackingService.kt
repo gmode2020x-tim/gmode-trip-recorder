@@ -27,7 +27,9 @@ import ca.gmode.triprecorder.auto.ReturnDwellWorker
 import ca.gmode.triprecorder.data.AppDatabase
 import ca.gmode.triprecorder.data.PhoneSnapshot
 import ca.gmode.triprecorder.data.RecordingRepository
+import ca.gmode.triprecorder.data.SensorSnapshot
 import ca.gmode.triprecorder.diagnostics.AppLogStore
+import ca.gmode.triprecorder.settings.AutoRecordingConfig
 import ca.gmode.triprecorder.settings.AutoRecordingSettings
 import ca.gmode.triprecorder.settings.AutoRecordingStateStore
 import ca.gmode.triprecorder.sync.SyncScheduler
@@ -39,6 +41,8 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class TrackingService : LifecycleService() {
     private lateinit var fusedLocation: FusedLocationProviderClient
@@ -47,15 +51,22 @@ class TrackingService : LifecycleService() {
     private lateinit var locationManager: LocationManager
     private lateinit var liveTelemetry: LiveTelemetryStore
     private lateinit var diagnostics: TrackingDiagnosticStore
+    private lateinit var automaticSettings: AutoRecordingSettings
+    private lateinit var automaticState: AutoRecordingStateStore
     private var currentTripId: String? = null
     private var satelliteCount: Int? = null
     private var tracking = false
     private var locationRequest: LocationRequest? = null
+    private var recordingConfig = AutoRecordingConfig()
+    private var automaticTrip = false
+    private var stationaryPaused = false
+    private var stationaryPauseTracker: StationaryAutoPauseTracker? = null
     private var lastFixElapsedRealtimeMs: Long? = null
     private var gpsRetryCount = 0
     private var initialized = false
     private val mainHandler = Handler(Looper.getMainLooper())
     private val gpsWatchdog = Runnable { checkGpsHealth() }
+    private val locationProcessingMutex = Mutex()
 
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
@@ -63,7 +74,7 @@ class TrackingService : LifecycleService() {
         }
 
         override fun onLocationAvailability(availability: LocationAvailability) {
-            if (tracking && !availability.isLocationAvailable && lastFixElapsedRealtimeMs == null) {
+            if (tracking && !stationaryPaused && !availability.isLocationAvailable && lastFixElapsedRealtimeMs == null) {
                 diagnostics.updateStatus("GPS provider is not returning a location yet", gpsRetryCount)
                 updateNotification("GPS unavailable — automatic retry is active")
             }
@@ -99,6 +110,8 @@ class TrackingService : LifecycleService() {
         locationManager = getSystemService(LocationManager::class.java)
         liveTelemetry = LiveTelemetryStore(this)
         diagnostics = TrackingDiagnosticStore(this)
+        automaticSettings = AutoRecordingSettings(this)
+        automaticState = AutoRecordingStateStore(this)
         initialized = true
     }
 
@@ -131,11 +144,36 @@ class TrackingService : LifecycleService() {
         }
         currentTripId = tripId
         tracking = true
-        sensors.start()
         runCatching {
             locationManager.registerGnssStatusCallback(gnssCallback, Handler(Looper.getMainLooper()))
         }
-        val recordingConfig = AutoRecordingSettings(this).read()
+        recordingConfig = automaticSettings.read()
+        automaticTrip = automaticState.activeAutoTripId == tripId
+        stationaryPauseTracker = if (
+            automaticTrip && recordingConfig.stationaryTrimEnabled && recordingConfig.stationaryAutoPauseEnabled
+        ) {
+            StationaryAutoPauseTracker(
+                radiusMeters = recordingConfig.stationaryRadiusMeters.toDouble(),
+                pauseMillis = recordingConfig.stationaryPauseMinutes * 60_000L,
+                stationarySpeedMps = recordingConfig.stationarySpeedKmh / 3.6,
+            )
+        } else {
+            null
+        }
+        val restoredPause = automaticState.stationaryAutoPause?.takeIf { it.tripId == tripId }
+        if (restoredPause != null && stationaryPauseTracker != null) {
+            beginStationaryPause(restoredPause.latitude, restoredPause.longitude, restored = true)
+        } else {
+            automaticState.stationaryAutoPause?.takeIf { it.tripId == tripId }?.let {
+                automaticState.clearStationaryAutoPause()
+            }
+            beginHighAccuracyTracking("Waiting for a GPS fix")
+        }
+    }
+
+    private fun beginHighAccuracyTracking(message: String) {
+        stationaryPaused = false
+        sensors.start()
         val intervalMs = recordingConfig.locationIntervalSeconds * 1_000L
         val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalMs)
             .setMinUpdateIntervalMillis((intervalMs / 2).coerceAtLeast(1_000L))
@@ -146,28 +184,122 @@ class TrackingService : LifecycleService() {
         lastFixElapsedRealtimeMs = null
         gpsRetryCount = 0
         diagnostics.reset("Starting high-accuracy GPS")
-        requestLocationUpdates("Waiting for a GPS fix")
+        requestLocationUpdates(message)
     }
 
     private fun recordLocation(location: Location) {
-        val tripId = currentTripId ?: return
         lastFixElapsedRealtimeMs = SystemClock.elapsedRealtime()
         gpsRetryCount = 0
         diagnostics.markFix(location.accuracy.takeIf { location.hasAccuracy() })
         scheduleGpsWatchdog()
         lifecycleScope.launch {
-            val point = repository.recordLocation(
-                tripId = tripId,
-                location = location,
-                sensors = sensors.snapshotAndReset(),
-                phone = phoneSnapshot(),
-            ) ?: return@launch
-            liveTelemetry.update(point, sensors.orientation())
-            val speedKmh = (point.speedMps ?: 0.0) * 3.6
-            val accuracy = point.accuracyMeters?.let { " ±${it.toInt()} m" }.orEmpty()
-            updateNotification("${"%.0f".format(speedKmh)} km/h$accuracy • saved on phone")
-            SyncScheduler.enqueue(this@TrackingService)
+            locationProcessingMutex.withLock {
+                if (stationaryPaused) {
+                    handlePausedLocation(location)
+                } else {
+                    recordMovingLocation(location)
+                }
+            }
         }
+    }
+
+    private suspend fun recordMovingLocation(location: Location) {
+        val point = recordPoint(location, sensors.snapshotAndReset()) ?: return
+        val speedKmh = (point.speedMps ?: 0.0) * 3.6
+        val accuracy = point.accuracyMeters?.let { " ±${it.toInt()} m" }.orEmpty()
+        updateNotification("${"%.0f".format(speedKmh)} km/h$accuracy • saved on phone")
+        val tracker = stationaryPauseTracker ?: return
+        if (tracker.observe(location.stationarySample())) {
+            beginStationaryPause(location.latitude, location.longitude)
+        }
+    }
+
+    private suspend fun handlePausedLocation(location: Location) {
+        val pause = automaticState.stationaryAutoPause
+        val tripId = currentTripId
+        if (pause == null || pause.tripId != tripId) {
+            automaticState.clearStationaryAutoPause()
+            beginHighAccuracyTracking("Pause state cleared — resuming high-accuracy GPS")
+            recordMovingLocation(location)
+            return
+        }
+        val shouldResume = StationaryAutoResumePolicy.shouldResume(
+            sample = location.stationarySample(),
+            pausedLatitude = pause.latitude,
+            pausedLongitude = pause.longitude,
+            stationarySpeedMps = recordingConfig.stationarySpeedKmh / 3.6,
+            stationaryRadiusMeters = recordingConfig.stationaryRadiusMeters.toDouble(),
+            minimumMovementMeters = recordingConfig.minimumDistanceMeters.toDouble(),
+        )
+        if (!shouldResume) {
+            updateNotification("Trip paused — watching for movement")
+            return
+        }
+        recordPauseEndAnchor(location, pause.latitude, pause.longitude)
+        automaticState.clearStationaryAutoPause()
+        stationaryPauseTracker?.reset()
+        automaticState.updateStatus("Movement detected — automatic trip resumed")
+        beginHighAccuracyTracking("Movement detected — reacquiring high-accuracy GPS")
+        recordMovingLocation(location)
+        SyncScheduler.enqueue(this)
+    }
+
+    private suspend fun recordPauseEndAnchor(location: Location, latitude: Double, longitude: Double) {
+        val anchor = Location(location).apply {
+            this.latitude = latitude
+            this.longitude = longitude
+            time = (location.time - PAUSE_END_ANCHOR_OFFSET_MS).coerceAtLeast(1L)
+            speed = 0f
+            accuracy = location.accuracy.takeIf { location.hasAccuracy() } ?: recordingConfig.stationaryRadiusMeters.toFloat()
+        }
+        recordPoint(anchor, EMPTY_SENSOR_SNAPSHOT)
+    }
+
+    private suspend fun recordPoint(location: Location, sensorSnapshot: SensorSnapshot) = currentTripId?.let { tripId ->
+        repository.recordLocation(
+            tripId = tripId,
+            location = location,
+            sensors = sensorSnapshot,
+            phone = phoneSnapshot(),
+        )?.also { point ->
+            liveTelemetry.update(point, sensors.orientation())
+            SyncScheduler.enqueue(this)
+        }
+    }
+
+    private fun Location.stationarySample() = StationaryLocationSample(
+        elapsedRealtimeMs = SystemClock.elapsedRealtime(),
+        latitude = latitude,
+        longitude = longitude,
+        speedMps = speed.takeIf { hasSpeed() }?.toDouble(),
+        accuracyMeters = accuracy.takeIf { hasAccuracy() }?.toDouble(),
+    )
+
+    private fun beginStationaryPause(latitude: Double, longitude: Double, restored: Boolean = false) {
+        val tripId = currentTripId ?: return
+        stationaryPaused = true
+        sensors.stop()
+        sensors.snapshotAndReset()
+        mainHandler.removeCallbacks(gpsWatchdog)
+        locationRequest = LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, PAUSED_LOCATION_INTERVAL_MS)
+            .setMinUpdateIntervalMillis(PAUSED_MIN_UPDATE_INTERVAL_MS)
+            .setMinUpdateDistanceMeters(recordingConfig.minimumDistanceMeters.coerceAtLeast(10).toFloat())
+            .setMaxUpdateDelayMillis(PAUSED_MAX_UPDATE_DELAY_MS)
+            .build()
+        lastFixElapsedRealtimeMs = null
+        gpsRetryCount = 0
+        if (!restored) {
+            automaticState.beginStationaryAutoPause(tripId, latitude, longitude)
+        }
+        stationaryPauseTracker?.reset()
+        val message = if (restored) {
+            "Stationary pause restored — watching for movement"
+        } else {
+            "Stationary for ${recordingConfig.stationaryPauseMinutes} minutes — automatic trip paused"
+        }
+        automaticState.updateStatus(message)
+        diagnostics.reset("Trip paused — low-power movement watch active")
+        requestLocationUpdates("Trip paused — watching for movement")
     }
 
     private fun requestLocationUpdates(waitingMessage: String) {
@@ -191,7 +323,7 @@ class TrackingService : LifecycleService() {
                 .addOnSuccessListener {
                     diagnostics.updateStatus(waitingMessage, gpsRetryCount)
                     updateNotification(waitingMessage)
-                    scheduleGpsWatchdog()
+                    if (!stationaryPaused) scheduleGpsWatchdog()
                 }
                 .addOnFailureListener { error ->
                     gpsRetryCount += 1
@@ -205,6 +337,10 @@ class TrackingService : LifecycleService() {
 
     private fun checkGpsHealth() {
         if (!tracking) return
+        if (stationaryPaused) {
+            requestLocationUpdates("Trip paused — movement watch retrying")
+            return
+        }
         val now = SystemClock.elapsedRealtime()
         if (GpsRecoveryPolicy.fixIsStale(now, lastFixElapsedRealtimeMs)) {
             gpsRetryCount += 1
@@ -224,6 +360,10 @@ class TrackingService : LifecycleService() {
     private fun scheduleGpsWatchdog(delayMs: Long? = null) {
         mainHandler.removeCallbacks(gpsWatchdog)
         if (!tracking) return
+        if (stationaryPaused) {
+            delayMs?.let { mainHandler.postDelayed(gpsWatchdog, it) }
+            return
+        }
         val now = SystemClock.elapsedRealtime()
         val computedDelay = if (GpsRecoveryPolicy.fixIsStale(now, lastFixElapsedRealtimeMs)) {
             GpsRecoveryPolicy.FIX_TIMEOUT_MS
@@ -265,6 +405,9 @@ class TrackingService : LifecycleService() {
         currentTripId = null
         locationRequest = null
         lastFixElapsedRealtimeMs = null
+        automaticTrip = false
+        stationaryPaused = false
+        stationaryPauseTracker = null
         diagnostics.updateStatus("Trip stopped — GPS standby", 0)
     }
 
@@ -334,6 +477,16 @@ class TrackingService : LifecycleService() {
         private const val ACTION_START = "ca.gmode.triprecorder.START"
         private const val ACTION_STOP = "ca.gmode.triprecorder.STOP"
         private const val EXTRA_TRIP_ID = "trip_id"
+        private const val PAUSED_LOCATION_INTERVAL_MS = 15_000L
+        private const val PAUSED_MIN_UPDATE_INTERVAL_MS = 10_000L
+        private const val PAUSED_MAX_UPDATE_DELAY_MS = 60_000L
+        private const val PAUSE_END_ANCHOR_OFFSET_MS = 1_000L
+        private val EMPTY_SENSOR_SNAPSHOT = SensorSnapshot(
+            pressureHpa = null,
+            accelerationRmsMs2 = null,
+            accelerationPeakMs2 = null,
+            gyroscopePeakRadS = null,
+        )
 
         fun start(context: Context, tripId: String) {
             val intent = Intent(context, TrackingService::class.java)

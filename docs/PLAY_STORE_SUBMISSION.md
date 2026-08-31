@@ -90,4 +90,4 @@ GMODE Trip Recorder works without login. Press START for a manual trip. Backgrou
 
 ## Release notes
 
-Stationary trimming now removes configurable long-stop clusters from summaries and exports without deleting raw points, preserves separate route legs, and optionally stops manually started trips after the configured return-home dwell.
+Stationary trimming removes configurable long-stop clusters from summaries and exports without deleting stored raw points, preserves separate route legs, and optionally stops manually started trips after the configured return-home dwell. Automatic trips can also pause high-rate telemetry at a confirmed stop, survive process recreation in that state, and resume the same trip through a low-power movement watch.

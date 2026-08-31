@@ -32,13 +32,14 @@ Android may batch low-power background/geofence delivery. Force-stopping the app
 | Setting | Default | Accepted range | Effect |
 | --- | ---: | --- | --- |
 | Trim stationary time | On | On/off | Keeps every raw point but excludes confirmed stationary periods from derived statistics and normal exports. |
+| Auto-pause while stationary | On | On/off | Automatic trips stop high-rate GPS and sensor recording after the pause delay, retain a low-power movement watch, and resume the same trip when accurate movement is confirmed. |
 | Stop radius | 150 m | 25-500 m | Maximum spatial cluster that still counts as one stopped location. |
 | Stationary speed | 5.4 km/h | 1-20 km/h | Fixes at or below this speed contribute to stationary confirmation. |
 | Pause after | 3 min | 1-30 min | Minimum confirmed stop before its time and GPS drift are removed from trip statistics. |
 | Split after | 15 min | 5-120 min, not shorter than pause | A longer stop creates separate route legs in exports and Home Assistant metadata. |
 | Stop manual trips at home | Off | On/off | Uses the saved home radius and return delay to finish a manually started trip. |
 
-The 150 m default was selected from real S24 comparison data: 100 m fragmented a parking-area stop, while 250 m risked consuming legitimate roadway. Home stopping requires a saved home point and background location permission. CSV exports add a `segment` column; GPX uses multiple `trkseg` elements, KML uses `gx:MultiTrack`, and GeoJSON uses `MultiLineString`.
+The 150 m default was selected from real S24 comparison data: 100 m fragmented a parking-area stop, while 250 m risked consuming legitimate roadway. Auto-pause applies only to automatically started trips; manual trips continue recording unless stopped by the user or the optional home-stop rule. The paused state survives app-process recreation. Home stopping and automatic movement watching require background location permission. CSV exports add a `segment` column; GPX uses multiple `trkseg` elements, KML uses `gx:MultiTrack`, and GeoJSON uses `MultiLineString`.
 
 ## Appearance
 

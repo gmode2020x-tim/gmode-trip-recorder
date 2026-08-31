@@ -56,7 +56,7 @@ Open **Developer tools > Actions** and run `gmode_trip_recorder.set_mobile_contr
 
 - `notice`: text displayed in GMODE.
 - `latest_version`, `download_url`, and `sha256`: update information displayed for user-confirmed download. GMODE never silently installs an APK.
-- `settings`: any subset of `homeRadiusMeters` (100-5000), `wifiDepartureDelayMinutes` (1-30), `returnDwellMinutes` (1-120), `locationIntervalSeconds` (2-300), `minimumDistanceMeters` (1-500), `tripType` (`street`, `off_road`, `snow`, `water`), `stationaryTrimEnabled`, `stationaryRadiusMeters` (25-500), `stationaryPauseMinutes` (1-30), `stationarySplitMinutes` (5-120), `stationarySpeedKmh` (1-20), or `stopManualTripsAtHome`.
+- `settings`: any subset of `homeRadiusMeters` (100-5000), `wifiDepartureDelayMinutes` (1-30), `returnDwellMinutes` (1-120), `locationIntervalSeconds` (2-300), `minimumDistanceMeters` (1-500), `tripType` (`street`, `off_road`, `snow`, `water`), `stationaryTrimEnabled`, `stationaryAutoPauseEnabled`, `stationaryRadiusMeters` (25-500), `stationaryPauseMinutes` (1-30), `stationarySplitMinutes` (5-120), `stationarySpeedKmh` (1-20), or `stopManualTripsAtHome`.
 - `command_action`: `sync` or `rearm`. Commands are ID-based and are removed after the app acknowledges them.
 
 Example action data:
@@ -73,7 +73,7 @@ data:
 
 Use `gmode_trip_recorder.clear_mobile_logs` to clear one phone's retained events by `device_id`, or omit it to clear all phone logs. The latest heartbeat remains available.
 
-Each mobile trip also uploads its stationary-trimming profile. HA retains the complete raw point list and exposes derived `raw_duration_minutes`, `stationary_minutes`, `trimmed_point_count`, `stationary_periods`, and `segments` alongside trimmed distance, duration, and average speed.
+Each mobile trip also uploads its stationary-trimming and automatic-pause profile. HA retains every point sent by the phone and exposes derived `raw_duration_minutes`, `stationary_minutes`, `trimmed_point_count`, `stationary_periods`, and `segments` alongside trimmed distance, duration, and average speed.
 
 ## Troubleshooting
 

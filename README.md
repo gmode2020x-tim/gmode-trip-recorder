@@ -19,6 +19,7 @@ The ZIP contains the sideload APK, checksum file, this installation guide, and t
 
 - Manual or opt-in automatic trip recording with Street, Off road, Snow, and Water classifications.
 - Hybrid home detection using the saved GPS zone and optional current Wi-Fi SSID.
+- Restart-safe automatic trip pausing: after the configured stationary delay GMODE stops high-rate telemetry, watches for movement at low power, and resumes the same trip automatically.
 - Non-destructive stationary trimming with configurable speed, radius, pause, and route-leg split thresholds.
 - Optional home-zone stopping for manually started trips.
 - Full live GPS, accuracy, altitude, speed, bearing, GNSS satellite, barometer, motion, battery, and network monitoring whenever the cockpit is visible; trip points are persisted only while recording.

@@ -14,6 +14,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -247,5 +248,26 @@ class AutoTripControllerInstrumentedTest {
         assertEquals(300, restored.homeRadiusMeters)
         assertTrue(restored.hasHomeWifi)
         assertTrue(restored.hasHomeLocation)
+    }
+
+    @Test
+    fun stationaryPauseSurvivesRecreationAndClearsWithAutomaticTrip() {
+        state.activeAutoTripId = "auto-trip"
+        state.beginStationaryAutoPause(
+            tripId = "auto-trip",
+            latitude = 43.4,
+            longitude = -80.3,
+            nowEpochMs = 1_234_567L,
+        )
+
+        val restored = AutoRecordingStateStore(context).stationaryAutoPause
+        assertNotNull(restored)
+        assertEquals("auto-trip", restored?.tripId)
+        assertEquals(1_234_567L, restored?.startedAtEpochMs)
+        assertEquals(43.4, restored?.latitude ?: 0.0, 0.0)
+        assertEquals(-80.3, restored?.longitude ?: 0.0, 0.0)
+
+        state.activeAutoTripId = null
+        assertNull(AutoRecordingStateStore(context).stationaryAutoPause)
     }
 }

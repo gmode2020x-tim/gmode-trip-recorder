@@ -26,6 +26,7 @@ object UploadPayloadFactory {
                 "stationaryTrim",
                 JSONObject()
                     .put("enabled", it.stationaryTrimEnabled)
+                    .put("autoPauseEnabled", it.stationaryAutoPauseEnabled)
                     .put("radiusMeters", it.stationaryRadiusMeters)
                     .put("pauseMinutes", it.stationaryPauseMinutes)
                     .put("splitMinutes", it.stationarySplitMinutes)

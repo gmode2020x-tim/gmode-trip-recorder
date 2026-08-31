@@ -15,6 +15,7 @@ data class AutoRecordingConfig(
     val minimumDistanceMeters: Int = DEFAULT_MINIMUM_DISTANCE_METERS,
     val tripType: String = "street",
     val stationaryTrimEnabled: Boolean = true,
+    val stationaryAutoPauseEnabled: Boolean = true,
     val stationaryRadiusMeters: Int = DEFAULT_STATIONARY_RADIUS_METERS,
     val stationaryPauseMinutes: Int = DEFAULT_STATIONARY_PAUSE_MINUTES,
     val stationarySplitMinutes: Int = DEFAULT_STATIONARY_SPLIT_MINUTES,
@@ -77,6 +78,7 @@ class AutoRecordingSettings(context: Context) {
         minimumDistanceMeters = preferences.getInt(KEY_MINIMUM_DISTANCE, AutoRecordingConfig.DEFAULT_MINIMUM_DISTANCE_METERS),
         tripType = preferences.getString(KEY_TRIP_TYPE, "street") ?: "street",
         stationaryTrimEnabled = preferences.getBoolean(KEY_STATIONARY_TRIM_ENABLED, true),
+        stationaryAutoPauseEnabled = preferences.getBoolean(KEY_STATIONARY_AUTO_PAUSE_ENABLED, true),
         stationaryRadiusMeters = preferences.getInt(
             KEY_STATIONARY_RADIUS,
             AutoRecordingConfig.DEFAULT_STATIONARY_RADIUS_METERS,
@@ -112,6 +114,7 @@ class AutoRecordingSettings(context: Context) {
             .putInt(KEY_MINIMUM_DISTANCE, normalized.minimumDistanceMeters)
             .putString(KEY_TRIP_TYPE, normalized.tripType)
             .putBoolean(KEY_STATIONARY_TRIM_ENABLED, normalized.stationaryTrimEnabled)
+            .putBoolean(KEY_STATIONARY_AUTO_PAUSE_ENABLED, normalized.stationaryAutoPauseEnabled)
             .putInt(KEY_STATIONARY_RADIUS, normalized.stationaryRadiusMeters)
             .putInt(KEY_STATIONARY_PAUSE, normalized.stationaryPauseMinutes)
             .putInt(KEY_STATIONARY_SPLIT, normalized.stationarySplitMinutes)
@@ -144,6 +147,7 @@ class AutoRecordingSettings(context: Context) {
         const val KEY_MINIMUM_DISTANCE = "minimum_distance_meters"
         const val KEY_TRIP_TYPE = "trip_type"
         const val KEY_STATIONARY_TRIM_ENABLED = "stationary_trim_enabled"
+        const val KEY_STATIONARY_AUTO_PAUSE_ENABLED = "stationary_auto_pause_enabled"
         const val KEY_STATIONARY_RADIUS = "stationary_radius_meters"
         const val KEY_STATIONARY_PAUSE = "stationary_pause_minutes"
         const val KEY_STATIONARY_SPLIT = "stationary_split_minutes"
@@ -151,6 +155,13 @@ class AutoRecordingSettings(context: Context) {
         const val KEY_STOP_MANUAL_AT_HOME = "stop_manual_trips_at_home"
     }
 }
+
+data class StationaryAutoPauseState(
+    val tripId: String,
+    val startedAtEpochMs: Long,
+    val latitude: Double,
+    val longitude: Double,
+)
 
 class AutoRecordingStateStore(context: Context) {
     private val preferences = context.applicationContext.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
@@ -165,6 +176,10 @@ class AutoRecordingStateStore(context: Context) {
                 if (changed) {
                     remove(KEY_RETURN_DWELL_DEADLINE_EPOCH_MS)
                     remove(KEY_RETURN_DWELL_TRIP_ID)
+                    remove(KEY_STATIONARY_PAUSE_TRIP_ID)
+                    remove(KEY_STATIONARY_PAUSE_STARTED_AT_EPOCH_MS)
+                    remove(KEY_STATIONARY_PAUSE_LATITUDE)
+                    remove(KEY_STATIONARY_PAUSE_LONGITUDE)
                 }
             }.apply()
         }
@@ -202,6 +217,49 @@ class AutoRecordingStateStore(context: Context) {
             .apply()
     }
 
+    val stationaryAutoPause: StationaryAutoPauseState?
+        get() {
+            val tripId = preferences.getString(KEY_STATIONARY_PAUSE_TRIP_ID, null)
+                ?.takeIf { it.isNotBlank() }
+                ?: return null
+            val startedAt = preferences.getLong(KEY_STATIONARY_PAUSE_STARTED_AT_EPOCH_MS, 0L)
+            if (startedAt <= 0L || !preferences.contains(KEY_STATIONARY_PAUSE_LATITUDE) ||
+                !preferences.contains(KEY_STATIONARY_PAUSE_LONGITUDE)
+            ) {
+                return null
+            }
+            return StationaryAutoPauseState(
+                tripId = tripId,
+                startedAtEpochMs = startedAt,
+                latitude = java.lang.Double.longBitsToDouble(preferences.getLong(KEY_STATIONARY_PAUSE_LATITUDE, 0L)),
+                longitude = java.lang.Double.longBitsToDouble(preferences.getLong(KEY_STATIONARY_PAUSE_LONGITUDE, 0L)),
+            )
+        }
+
+    fun beginStationaryAutoPause(
+        tripId: String,
+        latitude: Double,
+        longitude: Double,
+        nowEpochMs: Long = System.currentTimeMillis(),
+    ) {
+        if (tripId.isBlank() || latitude !in -90.0..90.0 || longitude !in -180.0..180.0) return
+        preferences.edit()
+            .putString(KEY_STATIONARY_PAUSE_TRIP_ID, tripId)
+            .putLong(KEY_STATIONARY_PAUSE_STARTED_AT_EPOCH_MS, nowEpochMs.coerceAtLeast(1L))
+            .putLong(KEY_STATIONARY_PAUSE_LATITUDE, java.lang.Double.doubleToRawLongBits(latitude))
+            .putLong(KEY_STATIONARY_PAUSE_LONGITUDE, java.lang.Double.doubleToRawLongBits(longitude))
+            .apply()
+    }
+
+    fun clearStationaryAutoPause() {
+        preferences.edit()
+            .remove(KEY_STATIONARY_PAUSE_TRIP_ID)
+            .remove(KEY_STATIONARY_PAUSE_STARTED_AT_EPOCH_MS)
+            .remove(KEY_STATIONARY_PAUSE_LATITUDE)
+            .remove(KEY_STATIONARY_PAUSE_LONGITUDE)
+            .apply()
+    }
+
     fun status(): String = preferences.getString(KEY_STATUS, "Automatic recording is off")
         ?: "Automatic recording is off"
 
@@ -216,6 +274,10 @@ class AutoRecordingStateStore(context: Context) {
         const val KEY_ACTIVE_TRIP_ID = "active_auto_trip_id"
         const val KEY_RETURN_DWELL_DEADLINE_EPOCH_MS = "return_dwell_deadline_epoch_ms"
         const val KEY_RETURN_DWELL_TRIP_ID = "return_dwell_trip_id"
+        const val KEY_STATIONARY_PAUSE_TRIP_ID = "stationary_pause_trip_id"
+        const val KEY_STATIONARY_PAUSE_STARTED_AT_EPOCH_MS = "stationary_pause_started_at_epoch_ms"
+        const val KEY_STATIONARY_PAUSE_LATITUDE = "stationary_pause_latitude"
+        const val KEY_STATIONARY_PAUSE_LONGITUDE = "stationary_pause_longitude"
         const val KEY_STATUS = "status"
     }
 }

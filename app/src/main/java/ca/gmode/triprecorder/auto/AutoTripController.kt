@@ -33,9 +33,9 @@ class AutoTripController(
         }
         val timestamp = ZonedDateTime.now().format(TRIP_TIME_FORMAT)
         val trip = repository.startTrip("Automatic $timestamp", config.tripType)
+        state.activeAutoTripId = trip.id
         return try {
             startTracking(context, trip.id)
-            state.activeAutoTripId = trip.id
             state.updateStatus("Away from home — automatic trip is recording")
             enqueueSync(context)
             true

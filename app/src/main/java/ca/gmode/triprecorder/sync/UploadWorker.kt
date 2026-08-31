@@ -152,6 +152,7 @@ class UploadWorker(
             .put("gpsRetryCount", gps.retryCount)
             .put("autoEnabled", auto.enabled)
             .put("stationaryTrimEnabled", auto.stationaryTrimEnabled)
+            .put("stationaryAutoPauseEnabled", auto.stationaryAutoPauseEnabled)
             .put("stationaryRadiusMeters", auto.stationaryRadiusMeters)
             .put("stationaryPauseMinutes", auto.stationaryPauseMinutes)
             .put("stationarySplitMinutes", auto.stationarySplitMinutes)
@@ -232,6 +233,10 @@ class UploadWorker(
                     minimumDistanceMeters = values.optInt("minimumDistanceMeters", current.minimumDistanceMeters),
                     tripType = values.optString("tripType", current.tripType),
                     stationaryTrimEnabled = values.optBoolean("stationaryTrimEnabled", current.stationaryTrimEnabled),
+                    stationaryAutoPauseEnabled = values.optBoolean(
+                        "stationaryAutoPauseEnabled",
+                        current.stationaryAutoPauseEnabled,
+                    ),
                     stationaryRadiusMeters = values.optInt("stationaryRadiusMeters", current.stationaryRadiusMeters),
                     stationaryPauseMinutes = values.optInt("stationaryPauseMinutes", current.stationaryPauseMinutes),
                     stationarySplitMinutes = values.optInt("stationarySplitMinutes", current.stationarySplitMinutes),

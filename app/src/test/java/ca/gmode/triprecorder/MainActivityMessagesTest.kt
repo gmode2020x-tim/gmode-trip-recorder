@@ -16,7 +16,7 @@ class MainActivityMessagesTest {
         )
 
         assertEquals(
-            "Trimming saved — stationary radius: 150 m. Auto-start home radius: 250 m.",
+            "Trimming saved — stationary radius: 150 m; auto-pause: on. Auto-start home radius: 250 m.",
             trimmingSettingsSavedMessage(config),
         )
     }
@@ -30,7 +30,7 @@ class MainActivityMessagesTest {
         )
 
         assertEquals(
-            "Trimming saved — stationary radius: 150 m.",
+            "Trimming saved — stationary radius: 150 m; auto-pause: on.",
             trimmingSettingsSavedMessage(config),
         )
     }
@@ -44,7 +44,7 @@ class MainActivityMessagesTest {
         )
 
         assertEquals(
-            "Trimming saved — stationary radius: 150 m. Auto-start home radius: 250 m. " +
+            "Trimming saved — stationary radius: 150 m; auto-pause: on. Auto-start home radius: 250 m. " +
                 "Home detection: Precise location permission is required",
             trimmingSettingsSavedMessage(config, "Precise location permission is required"),
         )

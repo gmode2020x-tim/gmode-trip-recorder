@@ -66,11 +66,13 @@ Hybrid mode uses Wi-Fi departure as an early signal and GPS as the physical boun
 
 ## Trim stationary time
 
-Open **Settings > Stationary trimming**. The recommended defaults are enabled, 150 m stop radius, 5.4 km/h stationary speed, pause after three minutes, and split after 15 minutes.
+Open **Settings > Stationary trimming**. The recommended defaults are trimming and auto-pause enabled, 150 m stop radius, 5.4 km/h stationary speed, pause after three minutes, and split after 15 minutes.
 
 ![Stationary trimming settings](../screenshots/GMODE-v2.1.7-stationary-trimming-settings.png)
 
-GMODE never deletes source fixes. It derives moving statistics and route legs from the raw track. A short confirmed stop pauses elapsed driving time and removes GPS drift from distance. A stop longer than the split delay begins a new route leg when movement resumes. Disable trimming when you specifically need one raw timeline.
+On an automatic trip, **Auto-pause while stationary** switches from high-rate GPS and telemetry to a low-power movement watch after the configured delay. Accurate movement resumes the same trip, including after Android recreates the app process. This prevents a work or shopping stop from ending the trip while avoiding hours of parked telemetry and battery use. Manual trips are not automatically paused.
+
+GMODE never deletes source fixes already stored. It derives moving statistics and route legs from the raw track and records a pause boundary when movement resumes. A short confirmed stop pauses elapsed driving time and removes GPS drift from distance. A stop longer than the split delay begins a new route leg when movement resumes. Disable trimming when you specifically need one continuous raw timeline.
 
 Enable **Stop manual trips at home** if trips started with **START** should also finish after remaining inside the saved home zone for the configured return delay. This option requires the same saved home point and Android background-location permission as automatic recording.
 

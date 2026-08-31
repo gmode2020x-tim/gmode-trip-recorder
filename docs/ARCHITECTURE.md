@@ -18,6 +18,8 @@ For a private IPv4, local hostname, `.local`, loopback, link-local, CGNAT, or un
 
 `StationaryTripTrimmer` is a deterministic, non-destructive post-processor. It finds low-speed spatial clusters, removes their dwell time and GPS drift from derived statistics, and creates separate geometry segments after the configured split delay. Room retains the original points. The same settings travel with the mobile upload so Home Assistant reproduces the metrics without changing the version-1 upload contract.
 
+For automatically started trips, `StationaryAutoPauseTracker` applies those same radius, speed, and pause thresholds during recording. Once a stop is confirmed, `TrackingService` stops motion-sensor sampling and replaces its high-accuracy request with a 15-second/10-metre balanced-power movement watch. The trip ID and pause centre are persisted. Accurate displacement resumes high-accuracy recording on the same trip and writes a pause-boundary point so the post-processor can preserve elapsed-time and route-leg semantics. Manual trips bypass automatic pausing.
+
 The return-dwell state records the exact trip ID being watched. This permits the persisted worker to stop either an automatically started trip or, with explicit user opt-in, a manual trip after returning home.
 
 ## Security boundaries
