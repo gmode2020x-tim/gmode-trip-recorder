@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.8 - 2026-08-31
+
+- Added restart-safe automatic trip pausing after the configured stationary delay.
+- Switched paused automatic trips to a low-power movement watch and resumed high-accuracy GPS plus telemetry on confirmed movement without creating a second trip.
+- Added an Auto-pause while stationary setting, Home Assistant synchronization/control support, and persisted pause state across Android process recreation.
+- Fixed Home Assistant re-normalizing a saved 1.0 km/h stationary threshold back to 5.4 km/h.
+
 ## 2.1.7 - 2026-08-29
 
 - Added non-destructive stationary trimming with user-adjustable radius, speed, pause, and route-leg split thresholds.
