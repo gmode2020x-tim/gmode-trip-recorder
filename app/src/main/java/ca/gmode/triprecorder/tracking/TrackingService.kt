@@ -61,6 +61,7 @@ class TrackingService : LifecycleService() {
     private var automaticTrip = false
     private var stationaryPaused = false
     private var stationaryPauseTracker: StationaryAutoPauseTracker? = null
+    private var stationaryResumeTracker: StationaryAutoResumeTracker? = null
     private var lastFixElapsedRealtimeMs: Long? = null
     private var gpsRetryCount = 0
     private var initialized = false
@@ -219,18 +220,19 @@ class TrackingService : LifecycleService() {
         val tripId = currentTripId
         if (pause == null || pause.tripId != tripId) {
             automaticState.clearStationaryAutoPause()
+            stationaryResumeTracker = null
             beginHighAccuracyTracking("Pause state cleared — resuming high-accuracy GPS")
             recordMovingLocation(location)
             return
         }
-        val shouldResume = StationaryAutoResumePolicy.shouldResume(
-            sample = location.stationarySample(),
+        val resumeTracker = stationaryResumeTracker ?: StationaryAutoResumeTracker(
             pausedLatitude = pause.latitude,
             pausedLongitude = pause.longitude,
             stationarySpeedMps = recordingConfig.stationarySpeedKmh / 3.6,
             stationaryRadiusMeters = recordingConfig.stationaryRadiusMeters.toDouble(),
             minimumMovementMeters = recordingConfig.minimumDistanceMeters.toDouble(),
-        )
+        ).also { stationaryResumeTracker = it }
+        val shouldResume = resumeTracker.observe(location.stationarySample())
         if (!shouldResume) {
             updateNotification("Trip paused — watching for movement")
             return
@@ -238,6 +240,7 @@ class TrackingService : LifecycleService() {
         recordPauseEndAnchor(location, pause.latitude, pause.longitude)
         automaticState.clearStationaryAutoPause()
         stationaryPauseTracker?.reset()
+        stationaryResumeTracker = null
         automaticState.updateStatus("Movement detected — automatic trip resumed")
         beginHighAccuracyTracking("Movement detected — reacquiring high-accuracy GPS")
         recordMovingLocation(location)
@@ -292,6 +295,13 @@ class TrackingService : LifecycleService() {
             automaticState.beginStationaryAutoPause(tripId, latitude, longitude)
         }
         stationaryPauseTracker?.reset()
+        stationaryResumeTracker = StationaryAutoResumeTracker(
+            pausedLatitude = latitude,
+            pausedLongitude = longitude,
+            stationarySpeedMps = recordingConfig.stationarySpeedKmh / 3.6,
+            stationaryRadiusMeters = recordingConfig.stationaryRadiusMeters.toDouble(),
+            minimumMovementMeters = recordingConfig.minimumDistanceMeters.toDouble(),
+        )
         val message = if (restored) {
             "Stationary pause restored — watching for movement"
         } else {
@@ -408,6 +418,7 @@ class TrackingService : LifecycleService() {
         automaticTrip = false
         stationaryPaused = false
         stationaryPauseTracker = null
+        stationaryResumeTracker = null
         diagnostics.updateStatus("Trip stopped — GPS standby", 0)
     }
 

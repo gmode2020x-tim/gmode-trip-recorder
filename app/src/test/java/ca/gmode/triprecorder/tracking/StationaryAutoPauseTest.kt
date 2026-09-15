@@ -24,35 +24,47 @@ class StationaryAutoPauseTest {
     }
 
     @Test
-    fun resumesOnlyAfterAccurateMeaningfulMovement() {
-        val common = arrayOf(43.0, -80.0, 1.0 / 3.6, 150.0, 5.0)
+    fun resumeRequiresAccurateSustainedMovement() {
+        val tracker = resumeTracker()
 
-        assertFalse(
-            StationaryAutoResumePolicy.shouldResume(
-                sample(0, 43.0003, -80.0, 4.0, accuracy = 100.0),
-                common[0], common[1], common[2], common[3], common[4],
-            ),
-        )
-        assertFalse(
-            StationaryAutoResumePolicy.shouldResume(
-                sample(0, 43.0001, -80.0, 4.0),
-                common[0], common[1], common[2], common[3], common[4],
-            ),
-        )
-        assertTrue(
-            StationaryAutoResumePolicy.shouldResume(
-                sample(0, 43.0005, -80.0, 4.0),
-                common[0], common[1], common[2], common[3], common[4],
-            ),
-        )
+        assertFalse(tracker.observe(sample(0, 43.0005, -80.0, 4.0, accuracy = 100.0)))
+        assertFalse(tracker.observe(sample(15_000, 43.0005, -80.0, 4.0)))
+        assertFalse(tracker.observe(sample(30_000, 43.00055, -80.0, 4.0)))
+        assertTrue(tracker.observe(sample(45_000, 43.00065, -80.0, 4.0)))
     }
+
+    @Test
+    fun staticAccurateJumpDoesNotResume() {
+        val tracker = resumeTracker()
+
+        assertFalse(tracker.observe(sample(0, 43.0015, -80.0, 0.0)))
+        assertFalse(tracker.observe(sample(30_000, 43.0015, -80.0, 0.0)))
+        assertFalse(tracker.observe(sample(60_000, 43.0015, -80.0, 0.0)))
+    }
+
+    @Test
+    fun missingAccuracyResetsResumeConfirmation() {
+        val tracker = resumeTracker()
+
+        assertFalse(tracker.observe(sample(0, 43.0005, -80.0, 4.0)))
+        assertFalse(tracker.observe(sample(15_000, 43.00055, -80.0, 4.0, accuracy = null)))
+        assertFalse(tracker.observe(sample(45_000, 43.00065, -80.0, 4.0)))
+    }
+
+    private fun resumeTracker() = StationaryAutoResumeTracker(
+        pausedLatitude = 43.0,
+        pausedLongitude = -80.0,
+        stationarySpeedMps = 1.0 / 3.6,
+        stationaryRadiusMeters = 150.0,
+        minimumMovementMeters = 5.0,
+    )
 
     private fun sample(
         elapsedMs: Long,
         latitude: Double,
         longitude: Double,
         speedMps: Double?,
-        accuracy: Double = 3.0,
+        accuracy: Double? = 3.0,
     ) = StationaryLocationSample(
         elapsedRealtimeMs = elapsedMs,
         latitude = latitude,

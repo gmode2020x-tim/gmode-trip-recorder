@@ -796,7 +796,7 @@ class MainActivity : AppCompatActivity() {
                 ),
                 saveTrimming,
                 text(
-                    "Automatic trips pause telemetry after the stationary delay and use a low-power movement watch until driving resumes. Raw GPS points are retained; stops longer than the split delay become separate route legs. Manual home stopping uses the home radius and return delay above.",
+                    "Automatic trips pause telemetry after the stationary delay. Resuming requires accurate GPS plus at least 30 seconds of sustained movement, preventing stationary GPS drift from restarting the trip. Raw GPS points are retained; stops longer than the split delay become separate route legs. Manual home stopping uses the home radius and return delay above.",
                     11f,
                     MUTED,
                 ),

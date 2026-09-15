@@ -56,25 +56,59 @@ class StationaryAutoPauseTracker(
     }
 }
 
-object StationaryAutoResumePolicy {
-    fun shouldResume(
-        sample: StationaryLocationSample,
-        pausedLatitude: Double,
-        pausedLongitude: Double,
-        stationarySpeedMps: Double,
-        stationaryRadiusMeters: Double,
-        minimumMovementMeters: Double,
-    ): Boolean {
-        val accuracyLimit = max(50.0, stationaryRadiusMeters / 2.0)
-        if (sample.accuracyMeters != null && sample.accuracyMeters > accuracyLimit) return false
-        val distance = distanceMeters(
+class StationaryAutoResumeTracker(
+    private val pausedLatitude: Double,
+    private val pausedLongitude: Double,
+    stationarySpeedMps: Double,
+    private val stationaryRadiusMeters: Double,
+    private val minimumMovementMeters: Double,
+    private val confirmationMillis: Long = 30_000L,
+    private val accuracyLimitMeters: Double = 30.0,
+) {
+    private val minimumResumeSpeedMps = max(stationarySpeedMps, 5.0 / 3.6)
+    private var candidateStartedAtMs: Long? = null
+    private var candidateLatitude: Double? = null
+    private var candidateLongitude: Double? = null
+
+    fun observe(sample: StationaryLocationSample): Boolean {
+        val accuracy = sample.accuracyMeters
+        if (accuracy == null || accuracy > accuracyLimitMeters) {
+            reset()
+            return false
+        }
+        val distanceFromPause = distanceMeters(
             pausedLatitude,
             pausedLongitude,
             sample.latitude,
             sample.longitude,
         )
-        val movingDistance = max(15.0, min(50.0, max(minimumMovementMeters * 2.0, stationaryRadiusMeters / 3.0)))
-        val movingBySpeed = sample.speedMps != null && sample.speedMps > stationarySpeedMps
-        return distance >= stationaryRadiusMeters || movingBySpeed && distance >= movingDistance
+        val movingDistance = max(
+            15.0,
+            min(50.0, max(minimumMovementMeters * 2.0, stationaryRadiusMeters / 3.0)),
+        )
+        val movingBySpeed = (sample.speedMps ?: 0.0) >= minimumResumeSpeedMps
+        if (distanceFromPause < stationaryRadiusMeters && !(movingBySpeed && distanceFromPause >= movingDistance)) {
+            reset()
+            return false
+        }
+
+        val started = candidateStartedAtMs
+        val latitude = candidateLatitude
+        val longitude = candidateLongitude
+        if (started == null || latitude == null || longitude == null) {
+            candidateStartedAtMs = sample.elapsedRealtimeMs
+            candidateLatitude = sample.latitude
+            candidateLongitude = sample.longitude
+            return false
+        }
+        val confirmedProgress = distanceMeters(latitude, longitude, sample.latitude, sample.longitude)
+        val requiredProgress = max(10.0, minimumMovementMeters * 2.0)
+        return sample.elapsedRealtimeMs - started >= confirmationMillis && confirmedProgress >= requiredProgress
+    }
+
+    fun reset() {
+        candidateStartedAtMs = null
+        candidateLatitude = null
+        candidateLongitude = null
     }
 }

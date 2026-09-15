@@ -23,8 +23,8 @@ android {
         applicationId = "ca.gmode.triprecorder"
         minSdk = 29
         targetSdk = 36
-        versionCode = 20108
-        versionName = "2.1.8"
+        versionCode = 20109
+        versionName = "2.1.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

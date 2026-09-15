@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.9 - 2026-09-15
+
+- Hardened automatic trip resume against parked GPS drift by requiring a precise fix, meaningful displacement, and 30 seconds of sustained movement.
+- Raised the minimum resume-speed signal to 5 km/h while retaining the user-selected stationary threshold for pause detection and trimming.
+- Updated the stationary settings guidance to explain the new resume confirmation behavior.
+
 ## 2.1.8 - 2026-08-31
 
 - Added restart-safe automatic trip pausing after the configured stationary delay.
