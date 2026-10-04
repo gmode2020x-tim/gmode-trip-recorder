@@ -6,6 +6,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -93,6 +96,25 @@ class TripDaoInstrumentedTest {
 
         assertEquals(listOf("newer", "older"), dao.getRecentTrips(10).map { it.id })
         assertEquals(listOf(0L, 1L), dao.getPointsForTrip(newer.id).map { it.sequence })
+    }
+
+    @Test
+    fun selectingDifferentTypeCompletesCurrentTripAndStartsAnother() = runBlocking {
+        val repository = RecordingRepository(dao)
+        val street = repository.startTrip("Road approach", "street")
+
+        val result = repository.startTripForType("SxS trail", "off_road")
+
+        assertTrue(result.startedNewTrip)
+        assertEquals(street.id, result.completedTrip?.id)
+        assertEquals("complete", dao.getTrip(street.id)?.status)
+        assertEquals("off_road", result.trip.tripType)
+        assertEquals(result.trip.id, repository.activeTrip()?.id)
+
+        val repeated = repository.startTripForType("Ignored duplicate start", "Off road")
+        assertFalse(repeated.startedNewTrip)
+        assertNotNull(repository.activeTrip())
+        assertEquals(result.trip.id, repeated.trip.id)
     }
 
     private fun exportPoint(tripId: String, sequence: Long) = PointEntity(

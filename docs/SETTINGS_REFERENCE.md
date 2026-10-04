@@ -6,7 +6,7 @@
 | --- | --- |
 | Trip name | Optional title for the next manual trip; blank produces an automatic title. |
 | Trip type | Street, Off road, Snow, or Water. Selects speed scale, scene, and 3D vehicle. |
-| Start trip | Creates a local trip and starts the foreground location service. |
+| Start trip | Creates a local trip and starts the foreground location service. If a different trip type is already recording, finishes it and starts a new trip with the selected type; the same type keeps the current trip active. |
 | Stop trip | Finishes the active trip and queues synchronization. |
 | Exported trip | Any locally retained active or completed trip. |
 | Export format | GPX, KML, GeoJSON, or CSV. |

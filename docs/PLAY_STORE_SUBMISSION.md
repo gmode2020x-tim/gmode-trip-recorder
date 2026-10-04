@@ -5,14 +5,14 @@ This document separates completed repository work from manual Play Console actio
 ## Build and signing
 
 - [x] Package: `ca.gmode.triprecorder`
-- [x] Version name/code: `2.1.9` / `20109`
+- [x] Version name/code: `2.1.10` / `20110`
 - [x] Minimum SDK: 29 (Android 10)
 - [x] Compile/target SDK: 36 (Android 16)
 - [x] Release minification and resource shrinking enabled
 - [x] Dedicated ignored upload-keystore support
 - [x] Public upload certificate exported as `play-store/gmode-upload-certificate.pem`
 - [ ] In Play Console, enroll in mandatory Play App Signing and register the upload certificate
-- [ ] Upload `GMODE-Trip-Recorder-v2.1.9-play.aab` to an internal test track first
+- [ ] Upload `GMODE-Trip-Recorder-v2.1.10-play.aab` to an internal test track first
 
 The GitHub sideload APK intentionally has the previous debug signature for in-place v1 upgrades. Never upload the sideload APK to Play.
 
@@ -82,7 +82,7 @@ Google announced a separate minimum-scope declaration for `ACCESS_FINE_LOCATION`
 
 1. Internal test: install from Play, verify clean install, permissions, manual trip, background departure, export, and HA sync.
 2. Closed test if required by the account: meet Google's current tester/duration rules shown in Play Console.
-3. Production: use staged rollout, monitor Android vitals, and retain v2.1.9 artifacts/checksums.
+3. Production: use staged rollout, monitor Android vitals, and retain v2.1.10 artifacts/checksums.
 
 ## Reviewer notes draft
 
@@ -90,4 +90,4 @@ GMODE Trip Recorder works without login. Press START for a manual trip. Backgrou
 
 ## Release notes
 
-Stationary trimming removes configurable long-stop clusters from summaries and exports without deleting stored raw points, preserves separate route legs, and optionally stops manually started trips after the configured return-home dwell. Automatic trips can also pause high-rate telemetry at a confirmed stop, survive process recreation in that state, and resume the same trip through a low-power movement watch.
+Starting a different trip type now safely closes the active trip before creating the new one, and manually started trips now honor the configured return-home dwell. These safeguards prevent road and off-road travel from being merged when the app remains active across multiple outings.

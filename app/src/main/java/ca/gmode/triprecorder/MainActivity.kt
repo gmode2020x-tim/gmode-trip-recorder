@@ -39,6 +39,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import ca.gmode.triprecorder.auto.AutoRecordingManager
 import ca.gmode.triprecorder.auto.HomeWifiReader
+import ca.gmode.triprecorder.auto.ReturnDwellWorker
 import ca.gmode.triprecorder.data.AppDatabase
 import ca.gmode.triprecorder.data.RecordingRepository
 import ca.gmode.triprecorder.data.TripEntity
@@ -1132,9 +1133,26 @@ class MainActivity : AppCompatActivity() {
                 quickTripType
             }
             val name = if (::tripName.isInitialized) tripName.text.toString() else ""
-            val trip = repository.startTrip(name, type)
-            TrackingService.start(this@MainActivity, trip.id)
+            val result = repository.startTripForType(name, type)
+            result.completedTrip?.let { completed ->
+                if (autoState.activeAutoTripId == completed.id) autoState.activeAutoTripId = null
+                if (autoState.returnDwellTripId == completed.id) autoState.clearReturnDwell()
+                ReturnDwellWorker.cancel(this@MainActivity)
+            }
+            TrackingService.start(this@MainActivity, result.trip.id)
             SyncScheduler.enqueue(this@MainActivity)
+            when {
+                result.completedTrip != null -> Toast.makeText(
+                    this@MainActivity,
+                    "Saved ${tripTypeLabel(result.completedTrip.tripType)} trip — recording ${tripTypeLabel(type)}",
+                    Toast.LENGTH_LONG,
+                ).show()
+                !result.startedNewTrip -> Toast.makeText(
+                    this@MainActivity,
+                    "Already recording ${tripTypeLabel(type)}",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
             if (::tripName.isInitialized) tripName.text.clear()
         }
     }

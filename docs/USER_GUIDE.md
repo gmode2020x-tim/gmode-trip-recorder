@@ -42,7 +42,7 @@ Drag inside the gauge to orbit the 3D model. **Chase** returns to the high rear 
 ## Record a manual trip
 
 1. Use **Trip** to cycle Street, Off road, Snow, or Water, or select the type on the settings screen.
-2. Press **Start**.
+2. Press **Start**. If another trip is already recording with a different type, GMODE safely finishes that trip and starts a new trip with the selected type. Pressing Start with the same type keeps the current trip running.
 3. Review the location disclosure and allow precise location. Android 13+ asks separately for notification permission so the recording service can show its persistent status.
 4. Confirm the bottom-left recording indicator and timer are active.
 5. Press **Stop** to finish. The trip remains in the local database and synchronization is queued.

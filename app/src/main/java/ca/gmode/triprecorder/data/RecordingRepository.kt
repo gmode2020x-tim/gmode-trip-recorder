@@ -23,22 +23,38 @@ data class PhoneSnapshot(
     val satelliteCount: Int?,
 )
 
+data class StartTripResult(
+    val trip: TripEntity,
+    val startedNewTrip: Boolean,
+    val completedTrip: TripEntity? = null,
+)
+
 class RecordingRepository(private val dao: TripDao) {
     private val writeMutex = Mutex()
 
     suspend fun startTrip(title: String, tripType: String): TripEntity = writeMutex.withLock {
         dao.getActiveTrip()?.let { return@withLock it }
-        val now = Instant.now()
-        val trip = TripEntity(
-            id = UUID.randomUUID().toString(),
-            title = title.trim().ifBlank { "Trip ${now.toString().take(16).replace('T', ' ')}" },
-            tripType = tripType,
-            status = "active",
-            startAt = now.toString(),
-            updatedAtEpochMs = System.currentTimeMillis(),
-        )
+        val trip = newTrip(title, tripType, Instant.now())
         dao.upsertTrip(trip)
         trip
+    }
+
+    suspend fun startTripForType(title: String, tripType: String): StartTripResult = writeMutex.withLock {
+        val active = dao.getActiveTrip()
+        if (active != null && !tripTypesDiffer(active.tripType, tripType)) {
+            return@withLock StartTripResult(active, startedNewTrip = false)
+        }
+        val now = Instant.now()
+        val completed = active?.copy(
+            status = "complete",
+            endAt = now.toString(),
+            needsSync = true,
+            updatedAtEpochMs = System.currentTimeMillis(),
+        )
+        if (completed != null) dao.upsertTrip(completed)
+        val trip = newTrip(title, tripType, now)
+        dao.upsertTrip(trip)
+        StartTripResult(trip, startedNewTrip = true, completedTrip = completed)
     }
 
     suspend fun stopTrip(): TripEntity? = writeMutex.withLock {
@@ -117,7 +133,22 @@ class RecordingRepository(private val dao: TripDao) {
     suspend fun trip(tripId: String): TripEntity? = dao.getTrip(tripId)
 
     suspend fun tripPoints(tripId: String): List<PointEntity> = dao.getPointsForTrip(tripId)
+
+    private fun newTrip(title: String, tripType: String, now: Instant): TripEntity = TripEntity(
+        id = UUID.randomUUID().toString(),
+        title = title.trim().ifBlank { "Trip ${now.toString().take(16).replace('T', ' ')}" },
+        tripType = tripType,
+        status = "active",
+        startAt = now.toString(),
+        updatedAtEpochMs = System.currentTimeMillis(),
+    )
 }
+
+internal fun tripTypesDiffer(activeType: String, requestedType: String): Boolean =
+    normalizeTripType(activeType) != normalizeTripType(requestedType)
+
+private fun normalizeTripType(value: String): String =
+    value.trim().lowercase().replace('-', '_').replace(' ', '_')
 
 fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
     val radiusMeters = 6_371_000.0

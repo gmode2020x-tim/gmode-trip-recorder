@@ -47,4 +47,20 @@ class ReturnDwellWorkerInstrumentedTest {
         assertNull(state.returnDwellDeadlineEpochMs)
         assertTrue(state.status().contains("Returned home"))
     }
+
+    @Test
+    fun expiredPersistedDeadlineStopsManualTripWithoutAutomaticTripId() = runBlocking {
+        val repository = RecordingRepository(database.tripDao())
+        val trip = repository.startTrip("Manual deadline test", "street")
+        val state = AutoRecordingStateStore(context)
+        state.beginReturnDwell(trip.id, 1, System.currentTimeMillis() - 60_001L)
+
+        val result = TestListenableWorkerBuilder<ReturnDwellWorker>(context).build().doWork()
+
+        assertEquals(ListenableWorker.Result.success().javaClass, result.javaClass)
+        assertNull(repository.activeTrip())
+        assertNull(state.activeAutoTripId)
+        assertNull(state.returnDwellDeadlineEpochMs)
+        assertTrue(state.status().contains("manual trip stopped"))
+    }
 }

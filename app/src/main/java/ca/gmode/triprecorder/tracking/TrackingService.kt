@@ -136,7 +136,8 @@ class TrackingService : LifecycleService() {
     }
 
     private fun beginTracking(tripId: String?) {
-        if (tripId.isNullOrBlank() || tracking) return
+        if (tripId.isNullOrBlank() || tracking && currentTripId == tripId) return
+        if (tracking) stopTrackingResources()
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             diagnostics.reset("Precise location permission is missing — recording could not start")
             updateNotification("Precise location permission is required")

@@ -15,7 +15,7 @@ class ReturnDwellWorker(
 ) : CoroutineWorker(appContext, workerParameters) {
     override suspend fun doWork(): Result {
         val state = AutoRecordingStateStore(applicationContext)
-        if (state.activeAutoTripId == null) {
+        if (state.returnDwellTripId == null) {
             state.clearReturnDwell()
             return Result.success()
         }

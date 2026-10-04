@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.10 - 2026-10-04
+
+- Fixed scheduled return-home stopping for manually started trips.
+- When Start is pressed with a different trip type, GMODE now completes the current trip and immediately begins a new trip with the selected type instead of silently continuing the old classification.
+- Added regression coverage for manual dwell completion and Street-to-Off-road trip rollover policy.
+
 ## 2.1.9 - 2026-09-15
 
 - Hardened automatic trip resume against parked GPS drift by requiring a precise fix, meaningful displacement, and 30 seconds of sustained movement.
