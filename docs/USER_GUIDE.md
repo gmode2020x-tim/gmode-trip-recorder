@@ -25,7 +25,16 @@ Select **GPS sky + position** under the gauge settings to see every visible sate
 
 ### Six side buttons
 
-The left and right controls are real launch/action buttons. Their icons follow a radial arc around the main gauge. Factory defaults are Spotify, Navi, Camera, Trip, Start, and Stop. Each label, icon, and target can be changed under **Left + right dashboard buttons**. A target can be any launchable installed app or a built-in action: start, stop, trip type, automatic settings, sync, Home Assistant settings, app settings, radio/audio, navigation, music, camera, phone, browser, or installed-app settings.
+The left and right controls are real launch/action buttons. Their icons follow a radial arc around the main gauge. Factory defaults are Spotify, Map, Camera, Trip, Start, and Stop. Each label, icon, and target can be changed under **Left + right dashboard buttons**. A target can be any launchable installed app or a built-in action: start, stop, trip type, automatic settings, sync, Home Assistant settings, app settings, offline map, radio/audio, navigation, music, camera, phone, browser, or installed-app settings.
+
+### Offline trail map
+
+1. While connected to home Wi-Fi, download `ontario.map` from the Home Assistant link supplied with this release. The file is about 697 MiB; keep it in the phone's Downloads folder.
+2. Open **Map** on the cockpit, then **Choose offline map** and select `ontario.map` from Downloads. GMODE remembers the document permission.
+3. Allow precise location. The blue marker follows the phone's GPS position; the orange ring marks a 100 km radius around the first fresh position. **My position** re-centers the view after panning.
+4. Before leaving, turn on airplane mode and confirm the map, roads/trails, and blue marker still appear. Turn Location back on if airplane mode disabled it. Start an Off road trip in the cockpit before riding.
+
+The map page reads only the selected local file. It does not need mobile data or Home Assistant while riding. The map is from [Mapsforge Ontario](https://download.mapsforge.org/maps/v5/north-america/canada/ontario.map) with OpenStreetMap data. Trail coverage and access rules may be incomplete; stay on permitted routes.
 
 ### Gauge navigation
 

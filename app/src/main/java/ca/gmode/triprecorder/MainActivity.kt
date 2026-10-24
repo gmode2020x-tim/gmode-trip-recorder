@@ -407,6 +407,7 @@ class MainActivity : AppCompatActivity() {
             SideButtonSettings.ACTION_AUTO, SideButtonSettings.ACTION_SETTINGS -> showSettingsScreen()
             SideButtonSettings.ACTION_SYNC -> handleCockpitAction(CockpitAction.SYNC)
             SideButtonSettings.ACTION_HOME_ASSISTANT -> showSettingsScreen()
+            SideButtonSettings.ACTION_OFFLINE_MAP -> startActivity(Intent(this, OfflineMapActivity::class.java))
             SideButtonSettings.ACTION_OPEN_RADIO,
             SideButtonSettings.ACTION_OPEN_NAVIGATION,
             SideButtonSettings.ACTION_OPEN_MUSIC,

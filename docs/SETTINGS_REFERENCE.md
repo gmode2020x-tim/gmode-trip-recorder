@@ -62,7 +62,7 @@ Each of six slots has:
 | Icon | Target app icon, Radio, Navigation, Music, Phone, Internet/globe, Apps grid, Start/play, Stop, Sync, Home, or Settings. |
 | Opens | Any discovered launchable app or one built-in GMODE/phone action. |
 
-Factory defaults: Left top Spotify, Left middle Navi/Maps, Left bottom Camera, Right top Trip type, Right middle Start, Right bottom Stop. Preferred real app icons are used when the matching app is installed.
+Factory defaults: Left top Spotify, Left middle GMODE Offline Map, Left bottom Camera, Right top Trip type, Right middle Start, Right bottom Stop. Preferred real app icons are used for the matching Spotify and Camera apps when installed.
 
 ## Cockpit layout
 

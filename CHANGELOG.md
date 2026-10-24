@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.11 - 2026-10-24
+
+- Added an offline map page with a live GPS position marker and 100 km radius ring. The map reads a downloaded Mapsforge `.map` file and does not fetch tiles while riding.
+- The factory MAP side button opens the new page. Existing custom side button assignments remain available.
+
 ## 2.1.10 - 2026-10-04
 
 - Fixed scheduled return-home stopping for manually started trips.

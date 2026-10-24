@@ -22,3 +22,4 @@ Thumbs.db
 releases/*.apk
 releases/*.aab
 releases/*.zip
+releases/*.map

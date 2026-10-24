@@ -78,6 +78,7 @@ class SideButtonSettings(context: Context) {
         const val ACTION_SYNC = "action:sync"
         const val ACTION_HOME_ASSISTANT = "action:home_assistant"
         const val ACTION_SETTINGS = "action:settings"
+        const val ACTION_OFFLINE_MAP = "action:offline_map"
         const val ACTION_OPEN_RADIO = "action:open_radio"
         const val ACTION_OPEN_NAVIGATION = "action:open_navigation"
         const val ACTION_OPEN_MUSIC = "action:open_music"
@@ -95,6 +96,7 @@ class SideButtonSettings(context: Context) {
             SideButtonTarget(ACTION_SYNC, "GMODE — Sync now"),
             SideButtonTarget(ACTION_HOME_ASSISTANT, "GMODE — Home Assistant settings"),
             SideButtonTarget(ACTION_SETTINGS, "GMODE — App settings"),
+            SideButtonTarget(ACTION_OFFLINE_MAP, "GMODE — Offline map"),
             SideButtonTarget(ACTION_OPEN_RADIO, "Phone — Radio / audio app"),
             SideButtonTarget(ACTION_OPEN_NAVIGATION, "Phone — Navigation app"),
             SideButtonTarget(ACTION_OPEN_MUSIC, "Phone — Music app"),
@@ -121,7 +123,7 @@ class SideButtonSettings(context: Context) {
 
         val DEFAULTS = mapOf(
             SideButtonSlot.LEFT_TOP to SideButtonConfig(SideButtonSlot.LEFT_TOP, "SPOTIFY", ACTION_OPEN_MUSIC, "app"),
-            SideButtonSlot.LEFT_MIDDLE to SideButtonConfig(SideButtonSlot.LEFT_MIDDLE, "NAVI", ACTION_OPEN_NAVIGATION, "app"),
+            SideButtonSlot.LEFT_MIDDLE to SideButtonConfig(SideButtonSlot.LEFT_MIDDLE, "MAP", ACTION_OFFLINE_MAP, "navigation"),
             SideButtonSlot.LEFT_BOTTOM to SideButtonConfig(SideButtonSlot.LEFT_BOTTOM, "CAMERA", ACTION_OPEN_CAMERA, "app"),
             SideButtonSlot.RIGHT_TOP to SideButtonConfig(SideButtonSlot.RIGHT_TOP, "TRIP", ACTION_TRIP_TYPE, "settings"),
             SideButtonSlot.RIGHT_MIDDLE to SideButtonConfig(SideButtonSlot.RIGHT_MIDDLE, "START", ACTION_START, "play"),
@@ -130,7 +132,7 @@ class SideButtonSettings(context: Context) {
 
         private const val PREFS = "side_button_settings"
         private const val DEFAULTS_VERSION_KEY = "defaults_version"
-        private const val CURRENT_DEFAULTS_VERSION = 3
+        private const val CURRENT_DEFAULTS_VERSION = 4
         private val PREVIOUS_DEFAULTS = mapOf(
             SideButtonSlot.LEFT_TOP to SideButtonConfig(SideButtonSlot.LEFT_TOP, "RADIO", ACTION_OPEN_RADIO, "radio"),
             SideButtonSlot.LEFT_MIDDLE to SideButtonConfig(SideButtonSlot.LEFT_MIDDLE, "NAVI", ACTION_OPEN_NAVIGATION, "navigation"),
@@ -156,7 +158,6 @@ class SideButtonSettings(context: Context) {
 
         private val PREFERRED_APPS = listOf(
             PreferredApp(SideButtonSlot.LEFT_TOP, listOf("com.spotify.music"), listOf("Spotify")),
-            PreferredApp(SideButtonSlot.LEFT_MIDDLE, listOf("com.google.android.apps.maps"), listOf("Maps", "Google Maps")),
             PreferredApp(
                 SideButtonSlot.LEFT_BOTTOM,
                 listOf("com.sec.android.app.camera", "com.google.android.GoogleCamera", "com.android.camera2"),

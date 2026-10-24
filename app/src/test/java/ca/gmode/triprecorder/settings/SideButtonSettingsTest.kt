@@ -42,7 +42,7 @@ class SideButtonSettingsTest {
     fun firstRunDefaultsMatchRequestedSixButtonLayout() {
         val expectedTargets = mapOf(
             SideButtonSlot.LEFT_TOP to SideButtonSettings.ACTION_OPEN_MUSIC,
-            SideButtonSlot.LEFT_MIDDLE to SideButtonSettings.ACTION_OPEN_NAVIGATION,
+            SideButtonSlot.LEFT_MIDDLE to SideButtonSettings.ACTION_OFFLINE_MAP,
             SideButtonSlot.LEFT_BOTTOM to SideButtonSettings.ACTION_OPEN_CAMERA,
             SideButtonSlot.RIGHT_TOP to SideButtonSettings.ACTION_TRIP_TYPE,
             SideButtonSlot.RIGHT_MIDDLE to SideButtonSettings.ACTION_START,
@@ -50,7 +50,7 @@ class SideButtonSettingsTest {
         )
         val expectedLabels = mapOf(
             SideButtonSlot.LEFT_TOP to "SPOTIFY",
-            SideButtonSlot.LEFT_MIDDLE to "NAVI",
+            SideButtonSlot.LEFT_MIDDLE to "MAP",
             SideButtonSlot.LEFT_BOTTOM to "CAMERA",
             SideButtonSlot.RIGHT_TOP to "TRIP",
             SideButtonSlot.RIGHT_MIDDLE to "START",
@@ -58,7 +58,7 @@ class SideButtonSettingsTest {
         )
         val expectedIcons = mapOf(
             SideButtonSlot.LEFT_TOP to "app",
-            SideButtonSlot.LEFT_MIDDLE to "app",
+            SideButtonSlot.LEFT_MIDDLE to "navigation",
             SideButtonSlot.LEFT_BOTTOM to "app",
             SideButtonSlot.RIGHT_TOP to "settings",
             SideButtonSlot.RIGHT_MIDDLE to "play",
