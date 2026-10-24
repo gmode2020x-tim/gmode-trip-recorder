@@ -628,7 +628,10 @@ class MainActivity : AppCompatActivity() {
         }
         startButton = dashboardButton("START TRIP", filled = true)
         stopButton = dashboardButton("STOP + SYNC", filled = false).apply { isEnabled = false }
-        content.addView(card("NEW TRIP", tripName, tripType, horizontalButtons(startButton, stopButton)))
+        val openOfflineMap = dashboardButton("OPEN OFFLINE MAP", filled = false).apply {
+            setOnClickListener { startActivity(Intent(this@MainActivity, OfflineMapActivity::class.java)) }
+        }
+        content.addView(card("NEW TRIP", tripName, tripType, horizontalButtons(startButton, stopButton), openOfflineMap))
 
         val exportTripSpinner = Spinner(this).apply {
             adapter = labelAdapter(listOf("Loading locally recorded trips…"))

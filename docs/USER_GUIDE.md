@@ -30,7 +30,7 @@ The left and right controls are real launch/action buttons. Their icons follow a
 ### Offline trail map
 
 1. While connected to home Wi-Fi, download `ontario.map` from the Home Assistant link supplied with this release. The file is about 697 MiB; keep it in the phone's Downloads folder.
-2. Open **Map** on the cockpit, then **Choose offline map** and select `ontario.map` from Downloads. GMODE remembers the document permission.
+2. Open **Map** on the cockpit (or **Open offline map** in settings), then **Choose offline map** and select `ontario.map` from Downloads. GMODE remembers the document permission.
 3. Allow precise location. The blue marker follows the phone's GPS position; the orange ring marks a 100 km radius around the first fresh position. **My position** re-centers the view after panning.
 4. Before leaving, turn on airplane mode and confirm the map, roads/trails, and blue marker still appear. Turn Location back on if airplane mode disabled it. Start an Off road trip in the cockpit before riding.
 

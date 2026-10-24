@@ -15,7 +15,7 @@ On home Wi-Fi, download the app update and the separate Ontario map before leavi
 - **Ontario offline map:** [ontario.map](http://192.168.50.4:8123/local/gmode_trip_recorder/downloads/ontario.map)
 - **Checksums:** [GMODE-Trip-Recorder-v2.1.11-SHA256SUMS.txt](http://192.168.50.4:8123/local/gmode_trip_recorder/downloads/GMODE-Trip-Recorder-v2.1.11-SHA256SUMS.txt)
 
-Install the APK as an update, then download `ontario.map` into the phone's Downloads folder. Open **Map > Choose offline map** and select it. Test with airplane mode before leaving. GMODE records GPS without an internet connection.
+Install the APK as an update, then download `ontario.map` into the phone's Downloads folder. Open **Map > Choose offline map** (or **Settings > Open offline map**) and select it. Test with airplane mode before leaving. GMODE records GPS without an internet connection.
 
 ## Previous release: 2.1.10
 
@@ -148,7 +148,7 @@ Get-FileHash .\GMODE-Trip-Recorder-v2.1.11-sideload.apk -Algorithm SHA256
 The APK must equal:
 
 ```text
-5ab067c5d0b17d223266a2db1b71c493f7702954ada7f6d5e20af96ab594ef52
+5913a446a11993b1489b503d243721f3679eb56c75fb54d5cb500a3980b43e64
 ```
 
 ### Installation troubleshooting
